@@ -3,6 +3,11 @@
     <h2>Weekly Payments</h2>
     <form @submit.prevent="submitPayments">
       <div class="form-group">
+        <label for="date">Date:</label>
+        <input id="date" type="date" v-model="form.date" />
+      </div>
+
+      <div class="form-group">
         <label for="c_start">Starting Balance:</label>
         <input
           id="c_start"
