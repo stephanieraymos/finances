@@ -26,7 +26,7 @@
     if (authError) {
       error.value = authError.message
     } else {
-      window.location.href = '/dashboard' // or use vue-router
+        router.push('/') 
     }
   }
   </script>

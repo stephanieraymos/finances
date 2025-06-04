@@ -4,7 +4,6 @@ import Login from '@/components/Login.vue'
 
 const routes = [
   { path: '/', name: 'Dashboard', component: Dashboard },
-  { path: '/dashboard', name: 'Dashboard', component: Dashboard },
   { path: '/login', name: 'Login', component: Login } 
 ]
 
