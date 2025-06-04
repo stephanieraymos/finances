@@ -23,13 +23,19 @@
           <th>Date</th>
           <th>Card</th>
           <th>Amount</th>
+          <th></th>
+          <!-- for delete button -->
         </tr>
       </thead>
+
       <tbody>
         <tr v-for="p in filteredPayments" :key="p.id">
           <td>{{ formatDate(p.date) }}</td>
           <td>{{ labelFor(p.card_name) }}</td>
           <td>${{ Number(p.amount_paid).toFixed(2) }}</td>
+          <td>
+            <button class="delete" @click="deletePayment(p.id)">🗑️</button>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -37,59 +43,74 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { supabase } from '@/lib/supabase'
+import { ref, computed, onMounted } from "vue";
+import { supabase } from "@/lib/supabase";
+import { payments, fetchPayments } from "@/stores/paymentStore";
 
-const payments = ref([])
-const activeTab = ref('Last Payment')
+const activeTab = ref("Last Payment");
 
-const tabs = ['Last Payment', 'Last Week', 'This Month', 'All Payments']
+const tabs = ["Last Payment", "Last Week", "This Month", "All Payments"];
 
 const labelFor = (key) => {
   const map = {
-    amz: 'Amazon',
-    pp: 'PayPal',
-    ven: 'Venmo',
-    wf_ac: 'WF Active Cash',
-    disc: 'Discover',
-    apple: 'Apple',
-    attune: 'WF Attune',
-    car: 'Car',
-    lovesac: 'Lovesac'
+    amz: "Amazon",
+    pp: "PayPal",
+    ven: "Venmo",
+    wf_ac: "WF Active Cash",
+    disc: "Discover",
+    apple: "Apple",
+    attune: "WF Attune",
+    car: "Car",
+    lovesac: "Lovesac",
+  };
+  return map[key] || key;
+};
+
+const formatDate = (d) => {
+  if (typeof d === "string" && d.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    // Prevent timezone shift for raw YYYY-MM-DD strings
+    const [year, month, day] = d.split("-");
+    return `${month}/${day}/${year}`;
   }
-  return map[key] || key
-}
+  return new Date(d).toLocaleDateString();
+};
 
-const formatDate = (d) => new Date(d).toLocaleDateString()
+const deletePayment = async (id) => {
+  const { error } = await supabase.from("payments").delete().eq("id", id);
+  if (error) {
+    console.error("❌ Delete failed:", error.message);
+  } else {
+    await fetchPayments(supabase); // refresh list
+  }
+};
 
-const fetchPayments = async () => {
-  const { data, error } = await supabase.from('payments').select('*').order('date', { ascending: false })
-  if (error) console.error('Error fetching payments:', error)
-  else payments.value = data
-}
+onMounted(() => {
+  fetchPayments(supabase);
+});
 
 const filteredPayments = computed(() => {
-  const today = new Date()
-  const now = today.getTime()
+  const today = new Date();
+  const now = today.getTime();
 
   switch (activeTab.value) {
-    case 'Last Payment':
-      const latestDate = payments.value[0]?.date
-      return payments.value.filter(p => p.date === latestDate)
-    case 'Last Week':
-      const lastWeek = new Date(now - 7 * 86400000)
-      return payments.value.filter(p => new Date(p.date) >= lastWeek)
-    case 'This Month':
-      return payments.value.filter(p => {
-        const date = new Date(p.date)
-        return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()
-      })
+    case "Last Payment":
+      const latestDate = payments.value[0]?.date;
+      return payments.value.filter((p) => p.date === latestDate);
+    case "Last Week":
+      const lastWeek = new Date(now - 7 * 86400000);
+      return payments.value.filter((p) => new Date(p.date) >= lastWeek);
+    case "This Month":
+      return payments.value.filter((p) => {
+        const date = new Date(p.date);
+        return (
+          date.getMonth() === today.getMonth() &&
+          date.getFullYear() === today.getFullYear()
+        );
+      });
     default:
-      return payments.value
+      return payments.value;
   }
-})
-
-onMounted(fetchPayments)
+});
 </script>
 
 <style scoped lang="scss">
@@ -100,7 +121,7 @@ onMounted(fetchPayments)
   background: #fff;
   border-radius: 1rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 
   h2 {
     text-align: center;
@@ -134,7 +155,8 @@ onMounted(fetchPayments)
     width: 100%;
     border-collapse: collapse;
 
-    th, td {
+    th,
+    td {
       padding: 0.75rem;
       text-align: left;
       border-bottom: 1px solid #ddd;
@@ -150,6 +172,18 @@ onMounted(fetchPayments)
     color: #999;
     padding: 1rem;
     font-style: italic;
+  }
+  button.delete {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: #d11a2a;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #a00;
+    }
   }
 }
 </style>

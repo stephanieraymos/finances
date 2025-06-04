@@ -1,77 +1,73 @@
 <template>
-    <div class="payment-form">
-      <h2>Weekly Payments</h2>
-      <form @submit.prevent="submitPayments">
-        <div class="form-group">
-          <label for="date">Date:</label>
-          <input id="date" type="date" v-model="form.date" />
-        </div>
-  
-        <div class="form-group">
-          <label for="c_start">Starting Checking Balance:</label>
-          <input
-            id="c_start"
-            type="number"
-            v-model.number="form.c_start"
-            step="0.01"
-          />
-        </div>
-  
-        <div
-          class="form-group"
-          v-for="card in cards"
-          :key="card.key"
-        >
-          <label :for="card.key">{{ card.label }}:</label>
-          <input
-            :id="card.key"
-            type="number"
-            v-model.number="form[card.key]"
-            step="0.01"
-          />
-        </div>
-  
-        <div class="form-group total">
-          <label>Total Remaining:</label>
-          <span>${{ remainingBalance.toFixed(2) }}</span>
-        </div>
-  
-        <button type="submit">💾 Save</button>
-      </form>
-  
-      <p v-if="message" class="message">{{ message }}</p>
-    </div>
-  </template>  
-  
+  <div class="payment-form">
+    <h2>Weekly Payments</h2>
+    <form @submit.prevent="submitPayments">
+      <div class="form-group">
+        <label for="date">Date:</label>
+        <input id="date" type="date" v-model="form.date" />
+      </div>
 
-  <script setup>
-  import { reactive, ref } from "vue";
-  import { supabase } from "@/lib/supabase";
-  import { computed } from 'vue'
+      <div class="form-group">
+        <label for="c_start">Starting Checking Balance:</label>
+        <input
+          id="c_start"
+          type="number"
+          v-model.number="form.c_start"
+          step="0.01"
+        />
+      </div>
+
+      <div class="form-group" v-for="card in cards" :key="card.key">
+        <label :for="card.key">{{ card.label }}:</label>
+        <input
+          :id="card.key"
+          type="number"
+          v-model.number="form[card.key]"
+          step="0.01"
+        />
+      </div>
+
+      <div class="form-group total">
+        <label>Total Remaining:</label>
+        <span>${{ remainingBalance.toFixed(2) }}</span>
+      </div>
+
+      <button type="submit">💾 Save</button>
+    </form>
+
+    <p v-if="message" class="message">{{ message }}</p>
+  </div>
+</template>
+
+<script setup>
+import { reactive, ref } from "vue";
+import { supabase } from "@/lib/supabase";
+import { computed } from "vue";
+import { fetchPayments } from "@/stores/paymentStore";
 
 const remainingBalance = computed(() => {
   const totalPaid = cards.reduce((sum, card) => {
-    return sum + (Number(form[card.key]) || 0)
-  }, 0)
-  return (Number(form.c_start) || 0) - totalPaid
-})
-  
-  const cards = [
-    { key: "amz", label: "Amazon" },
-    { key: "pp", label: "PayPal" },
-    { key: "ven", label: "Venmo" },
-    { key: "wf_ac", label: "WF Active Cash" },
-    { key: "disc", label: "Discover" },
-    { key: "apple", label: "Apple" },
-    { key: "attune", label: "WF Attune" },
-    { key: "car", label: "Car" },
-    { key: "lovesac", label: "Lovesac" },
-    { key: "jc", label: "Joint Checking" }
-  ];
-  
-  const today = new Date().toISOString().slice(0, 10);
-  
-  const form = reactive({
+    return sum + (Number(form[card.key]) || 0);
+  }, 0);
+  return (Number(form.c_start) || 0) - totalPaid;
+});
+
+const cards = [
+  { key: "amz", label: "Amazon" },
+  { key: "pp", label: "PayPal" },
+  { key: "ven", label: "Venmo" },
+  { key: "wf_ac", label: "WF Active Cash" },
+  { key: "disc", label: "Discover" },
+  { key: "apple", label: "Apple" },
+  { key: "attune", label: "WF Attune" },
+  { key: "car", label: "Car" },
+  { key: "lovesac", label: "Lovesac" },
+  { key: "jc", label: "Joint Checking" },
+];
+
+const today = new Date().toISOString().slice(0, 10);
+
+const form = reactive({
   date: today,
   c_start: null,
   amz: null,
@@ -83,35 +79,51 @@ const remainingBalance = computed(() => {
   attune: null,
   car: null,
   lovesac: null,
-  jc: null
-})
-  
-  const message = ref("");
-  
-  const submitPayments = async () => {
-    const toInsert = cards
-      .filter(card => form[card.key] > 0)
-      .map(card => ({
-        date: form.date,
-        card_name: card.key,
-        amount_paid: form[card.key]
-      }));
-  
-    if (toInsert.length === 0) {
-      message.value = "⚠️ No amounts entered.";
-      return;
-    }
-  
-    const { error } = await supabase.from("payments").insert(toInsert);
-  
-    if (error) {
-      message.value = "❌ Failed to save: " + error.message;
-    } else {
-      message.value = "✅ Payments saved!";
-    }
-  };
-  </script>
-  
+  jc: null,
+});
+
+const message = ref("");
+
+const submitPayments = async () => {
+  const toInsert = cards
+    .filter((card) => form[card.key] > 0)
+    .map((card) => ({
+      date: form.date,
+      card_name: card.key,
+      amount_paid: form[card.key],
+    }));
+
+  if (toInsert.length === 0) {
+    message.value = "⚠️ No amounts entered.";
+    return;
+  }
+
+  const { error } = await supabase.from("payments").insert(toInsert);
+
+  if (error) {
+    message.value = "❌ Failed to save: " + error.message;
+  } else {
+    message.value = "✅ Payments saved!";
+    await fetchPayments(supabase);
+    // Reset form after successful submission
+    Object.assign(form, {
+      date: today,
+      c_start: null,
+      amz: null,
+      pp: null,
+      ven: null,
+      wf_ac: null,
+      disc: null,
+      apple: null,
+      attune: null,
+      car: null,
+      lovesac: null,
+      jc: null,
+    });
+  }
+};
+</script>
+
 <style scoped lang="scss">
 .payment-form {
   max-width: 600px;
@@ -120,7 +132,7 @@ const remainingBalance = computed(() => {
   border-radius: 1rem;
   background: #ffffff;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 
   h2 {
     font-size: 1.6rem;
@@ -186,15 +198,14 @@ const remainingBalance = computed(() => {
     color: #333;
   }
   .total {
-  font-weight: 600;
-  color: #1e3a8a;
-  justify-content: space-between;
+    font-weight: 600;
+    color: #1e3a8a;
+    justify-content: space-between;
 
-  span {
-    flex: 1;
-    text-align: right;
+    span {
+      flex: 1;
+      text-align: right;
+    }
   }
-}
-
 }
 </style>
