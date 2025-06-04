@@ -9,7 +9,12 @@
   
         <div class="form-group">
           <label for="c_start">Starting Checking Balance:</label>
-          <input id="c_start" type="number" v-model.number="form.c_start" />
+          <input
+            id="c_start"
+            type="number"
+            v-model.number="form.c_start"
+            step="0.01"
+          />
         </div>
   
         <div
@@ -18,7 +23,17 @@
           :key="card.key"
         >
           <label :for="card.key">{{ card.label }}:</label>
-          <input :id="card.key" type="number" v-model.number="form[card.key]" />
+          <input
+            :id="card.key"
+            type="number"
+            v-model.number="form[card.key]"
+            step="0.01"
+          />
+        </div>
+  
+        <div class="form-group total">
+          <label>Total Remaining:</label>
+          <span>${{ remainingBalance.toFixed(2) }}</span>
         </div>
   
         <button type="submit">💾 Save</button>
@@ -26,12 +41,20 @@
   
       <p v-if="message" class="message">{{ message }}</p>
     </div>
-  </template>
+  </template>  
   
 
   <script setup>
   import { reactive, ref } from "vue";
   import { supabase } from "@/lib/supabase";
+  import { computed } from 'vue'
+
+const remainingBalance = computed(() => {
+  const totalPaid = cards.reduce((sum, card) => {
+    return sum + (Number(form[card.key]) || 0)
+  }, 0)
+  return (Number(form.c_start) || 0) - totalPaid
+})
   
   const cards = [
     { key: "amz", label: "Amazon" },
@@ -49,19 +72,19 @@
   const today = new Date().toISOString().slice(0, 10);
   
   const form = reactive({
-    date: today,
-    c_start: 0,
-    amz: 0,
-    pp: 0,
-    ven: 0,
-    wf_ac: 0,
-    disc: 0,
-    apple: 0,
-    attune: 0,
-    car: 0,
-    lovesac: 0,
-    jc: 0
-  });
+  date: today,
+  c_start: null,
+  amz: null,
+  pp: null,
+  ven: null,
+  wf_ac: null,
+  disc: null,
+  apple: null,
+  attune: null,
+  car: null,
+  lovesac: null,
+  jc: null
+})
   
   const message = ref("");
   
@@ -162,5 +185,16 @@
     font-weight: 500;
     color: #333;
   }
+  .total {
+  font-weight: 600;
+  color: #1e3a8a;
+  justify-content: space-between;
+
+  span {
+    flex: 1;
+    text-align: right;
+  }
+}
+
 }
 </style>
