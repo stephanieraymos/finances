@@ -53,11 +53,15 @@ const fetchLastPayment = async () => {
     .from("payments")
     .select("*")
     .order("date", { ascending: false })
-    .limit(1)
-    .single();
+    .limit(1);
 
-  if (error) console.error("Error fetching last payment:", error);
-  else lastPayment.value = data;
+  if (error) {
+    console.error("Error fetching last payment:", error);
+  } else if (data.length > 0) {
+    lastPayment.value = data[0];
+  } else {
+    lastPayment.value = null;
+  }
 };
 
 const daysUntilDue = (dueDay) => {
