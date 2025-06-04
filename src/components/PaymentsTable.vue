@@ -31,7 +31,7 @@
       <tbody>
         <tr v-for="p in filteredPayments" :key="p.id">
           <td>{{ formatDate(p.date) }}</td>
-          <td>{{ labelFor(p.card_name) }}</td>
+          <td :style="{ color: colorFor(p.card_name) }">{{ labelFor(p.card_name) }}</td>
           <td>${{ Number(p.amount_paid).toFixed(2) }}</td>
           <td>
             <button class="delete" @click="deletePayment(p.id)">🗑️</button>
@@ -46,24 +46,26 @@
 import { ref, computed, onMounted } from "vue";
 import { supabase } from "@/lib/supabase";
 import { payments, fetchPayments } from "@/stores/paymentStore";
+import { bills, fetchBills } from '@/stores/billStore';
+import dayjs from "dayjs";
 
 const activeTab = ref("Last Payment");
-
 const tabs = ["Last Payment", "Last Week", "This Month", "All Payments"];
 
-const labelFor = (key) => {
-  const map = {
-    amz: "Amazon",
-    pp: "PayPal",
-    ven: "Venmo",
-    wf_ac: "WF Active Cash",
-    disc: "Discover",
-    apple: "Apple",
-    attune: "WF Attune",
-    car: "Car",
-    lovesac: "Lovesac",
-  };
-  return map[key] || key;
+
+onMounted(() => {
+  fetchPayments(supabase);
+  fetchBills();
+});
+
+const labelFor = (name) => {
+  const match = bills.value.find((b) => b.name === name);
+  return match?.label || name;
+};
+
+const colorFor = (name) => {
+  const match = bills.value.find((b) => b.name === name);
+  return match?.color || '#333';
 };
 
 const formatDate = (d) => {
@@ -75,37 +77,32 @@ const formatDate = (d) => {
   return new Date(d).toLocaleDateString();
 };
 
+const emit = defineEmits(['payment-deleted']);
+
 const deletePayment = async (id) => {
   const { error } = await supabase.from("payments").delete().eq("id", id);
   if (error) {
     console.error("❌ Delete failed:", error.message);
   } else {
     await fetchPayments(supabase); // refresh list
+    emit('payment-deleted'); // Notify parent
   }
 };
 
-onMounted(() => {
-  fetchPayments(supabase);
-});
 
 const filteredPayments = computed(() => {
-  const today = new Date();
-  const now = today.getTime();
-
+  const today = dayjs();
   switch (activeTab.value) {
-    case "Last Payment":
+    case 'Last Payment':
       const latestDate = payments.value[0]?.date;
       return payments.value.filter((p) => p.date === latestDate);
-    case "Last Week":
-      const lastWeek = new Date(now - 7 * 86400000);
-      return payments.value.filter((p) => new Date(p.date) >= lastWeek);
-    case "This Month":
+    case 'Last Week':
+      const lastWeek = today.subtract(7, 'day');
+      return payments.value.filter((p) => dayjs(p.date).isAfter(lastWeek));
+    case 'This Month':
       return payments.value.filter((p) => {
-        const date = new Date(p.date);
-        return (
-          date.getMonth() === today.getMonth() &&
-          date.getFullYear() === today.getFullYear()
-        );
+        const d = dayjs(p.date);
+        return d.month() === today.month() && d.year() === today.year();
       });
     default:
       return payments.value;

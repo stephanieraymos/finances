@@ -4,10 +4,22 @@
       <h3>Last Payment</h3>
       <p>
         <strong>Date:</strong>
-        {{ lastPayment.created_at?.slice(0, 10) || "N/A" }}
+        {{ formatDate(lastPayment[0]?.date) }}
       </p>
+
       <p><strong>Total Paid:</strong> ${{ totalPaid }}</p>
-      <p><strong>Starting Balance:</strong> ${{ lastPayment.c_start }}</p>
+
+      <ul v-if="cardsPaid.length > 0">
+        <li
+          v-for="(entry, i) in cardsPaid"
+          :key="i"
+          :style="{ color: entry.color }"
+        >
+          {{ entry.card }}: ${{ entry.amount }}
+        </li>
+      </ul>
+
+      <p><strong>Starting Balance:</strong> ${{ lastPayment[0]?.c_start }}</p>
       <p><strong>Leftover:</strong> ${{ leftover }}</p>
     </div>
     <div class="last-paid" v-else>
@@ -28,19 +40,25 @@
       </li>
     </ul>
 
-    <payments-form />
-    <payments-table />
+    <payments-form @payment-saved="fetchLastPayment" />
+    <payments-table @payment-deleted="fetchLastPayment" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { supabase } from "@/lib/supabase.js";
+import dayjs from "dayjs";
 import PaymentsForm from "./PaymentsForm.vue";
 import PaymentsTable from "./PaymentsTable.vue";
 
 const bills = ref([]);
 const lastPayment = ref(null);
+const cardColors = ref({});
+
+const formatDate = (date) => {
+  return date ? dayjs(date).format("MM/DD/YYYY") : "N/A";
+};
 
 const fetchBills = async () => {
   const { data, error } = await supabase.from("bills").select("*");
@@ -49,18 +67,30 @@ const fetchBills = async () => {
 };
 
 const fetchLastPayment = async () => {
-  const { data, error } = await supabase
+  const { data: latest, error: latestError } = await supabase
     .from("payments")
-    .select("*")
+    .select("date")
     .order("date", { ascending: false })
     .limit(1);
 
-  if (error) {
-    console.error("Error fetching last payment:", error);
-  } else if (data.length > 0) {
-    lastPayment.value = data[0];
-  } else {
+  if (latestError || !latest.length) {
+    console.error("Error finding latest payment date:", latestError);
     lastPayment.value = null;
+    return;
+  }
+
+  const latestDate = latest[0].date;
+
+  const { data, error } = await supabase
+    .from("payments")
+    .select("*")
+    .eq("date", latestDate);
+
+  if (error) {
+    console.error("Error fetching last payments:", error);
+    lastPayment.value = null;
+  } else {
+    lastPayment.value = data;
   }
 };
 
@@ -82,30 +112,33 @@ const sortedBills = computed(() => {
 
 const totalPaid = computed(() => {
   if (!lastPayment.value) return 0;
-  const keys = Object.keys(lastPayment.value).filter(
-    (key) =>
-      key.endsWith("_paid") ||
-      [
-        "amz",
-        "pp",
-        "ven",
-        "wf_ac",
-        "disc",
-        "apple",
-        "attune",
-        "car",
-        "lovesac",
-      ].includes(key)
-  );
-  return keys.reduce(
-    (sum, key) => sum + (Number(lastPayment.value[key]) || 0),
+  return lastPayment.value.reduce(
+    (sum, p) => sum + (Number(p.amount_paid) || 0),
     0
   );
 });
 
+const cardsPaid = computed(() => {
+  if (!lastPayment.value || !bills.value.length) return [];
+
+  return lastPayment.value.map((p) => {
+    const match = bills.value.find(
+      (b) => b.name?.toLowerCase() === p.card_name?.toLowerCase()
+    );
+
+    return {
+      card: match?.label || p.card_name,
+      amount: Number(p.amount_paid).toFixed(2),
+      color: match?.color || "#333",
+    };
+  });
+});
+
 const leftover = computed(() => {
   if (!lastPayment.value) return 0;
-  return Number(lastPayment.value.c_start || 0) - totalPaid.value;
+  const start = Number(lastPayment.value[0]?.c_start || 0);
+  const total = totalPaid.value;
+  return Number((start - total).toFixed(2));
 });
 
 onMounted(() => {

@@ -2,18 +2,16 @@
   <div class="payment-form">
     <h2>Weekly Payments</h2>
     <form @submit.prevent="submitPayments">
-      <div class="form-group">
-        <label for="date">Date:</label>
-        <input id="date" type="date" v-model="form.date" />
-      </div>
-
-      <div class="form-group">
-        <label for="c_start">Starting Checking Balance:</label>
+      <div class="form-group" v-for="bill in bills" :key="bill.name">
+        <label :for="bill.name" :style="{ color: bill.color || '#444' }">
+          {{ bill.label }}:
+        </label>
         <input
-          id="c_start"
+          :id="bill.name"
           type="number"
-          v-model.number="form.c_start"
+          v-model.number="form[bill.name]"
           step="0.01"
+          :class="{ 'due-soon': isDueSoon(bill.due_day_of_month) }"
         />
       </div>
 
@@ -40,57 +38,57 @@
 </template>
 
 <script setup>
-import { reactive, ref } from "vue";
+import { reactive, ref, computed, onMounted, defineEmits } from "vue";
 import { supabase } from "@/lib/supabase";
-import { computed } from "vue";
+import { bills, fetchBills } from "@/stores/billStore";
 import { fetchPayments } from "@/stores/paymentStore";
 
-const remainingBalance = computed(() => {
-  const totalPaid = cards.reduce((sum, card) => {
-    return sum + (Number(form[card.key]) || 0);
-  }, 0);
-  return (Number(form.c_start) || 0) - totalPaid;
-});
+const emit = defineEmits(["payment-saved"]);
 
-const cards = [
-  { key: "amz", label: "Amazon" },
-  { key: "pp", label: "PayPal" },
-  { key: "ven", label: "Venmo" },
-  { key: "wf_ac", label: "WF Active Cash" },
-  { key: "disc", label: "Discover" },
-  { key: "apple", label: "Apple" },
-  { key: "attune", label: "WF Attune" },
-  { key: "car", label: "Car" },
-  { key: "lovesac", label: "Lovesac" },
-  { key: "jc", label: "Joint Checking" },
-];
+onMounted(() => {
+  fetchBills();
+});
 
 const today = new Date().toISOString().slice(0, 10);
 
 const form = reactive({
   date: today,
   c_start: null,
-  amz: null,
-  pp: null,
-  ven: null,
-  wf_ac: null,
-  disc: null,
-  apple: null,
-  attune: null,
-  car: null,
-  lovesac: null,
-  jc: null,
 });
 
 const message = ref("");
 
+const remainingBalance = computed(() => {
+  const totalPaid = bills.value.reduce((sum, bill) => {
+    return sum + (Number(form[bill.name]) || 0);
+  }, 0);
+  return (Number(form.c_start) || 0) - totalPaid;
+});
+
+const isDueSoon = (dueDay) => {
+  if (!dueDay) return false;
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let due = new Date(now.getFullYear(), now.getMonth(), dueDay);
+
+  // If the due date has already passed this month, bump to next month
+  if (due < today) {
+    due = new Date(now.getFullYear(), now.getMonth() + 1, dueDay);
+  }
+
+  const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
+  return diffDays <= 7;
+};
+
 const submitPayments = async () => {
-  const toInsert = cards
-    .filter((card) => form[card.key] > 0)
-    .map((card) => ({
+  const toInsert = bills.value
+    .filter((bill) => form[bill.name] > 0)
+    .map((bill) => ({
       date: form.date,
-      card_name: card.key,
-      amount_paid: form[card.key],
+      card_name: bill.name,
+      amount_paid: form[bill.name],
+      c_start: form.c_start,
     }));
 
   if (toInsert.length === 0) {
@@ -105,21 +103,9 @@ const submitPayments = async () => {
   } else {
     message.value = "✅ Payments saved!";
     await fetchPayments(supabase);
-    // Reset form after successful submission
-    Object.assign(form, {
-      date: today,
-      c_start: null,
-      amz: null,
-      pp: null,
-      ven: null,
-      wf_ac: null,
-      disc: null,
-      apple: null,
-      attune: null,
-      car: null,
-      lovesac: null,
-      jc: null,
-    });
+    emit("payment-saved");
+    Object.assign(form, { date: today, c_start: null });
+    bills.value.forEach((bill) => (form[bill.name] = null));
   }
 };
 </script>
@@ -173,7 +159,10 @@ const submitPayments = async () => {
         }
       }
     }
-
+    input.due-soon {
+      background-color: #ffe5e5 !important;
+      border-color: #ff4d4f !important;
+    }
     button {
       margin-top: 1rem;
       padding: 0.75rem;
