@@ -2,6 +2,16 @@
   <div class="payment-form">
     <h2>Weekly Payments</h2>
     <form @submit.prevent="submitPayments">
+      <div class="form-group">
+        <label for="c_start">Starting Balance:</label>
+        <input
+          id="c_start"
+          type="number"
+          v-model.number="form.c_start"
+          step="0.01"
+        />
+      </div>
+
       <div class="form-group" v-for="bill in bills" :key="bill.name">
         <label :for="bill.name" :style="{ color: bill.color || '#444' }">
           {{ bill.label }}:
