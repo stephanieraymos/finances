@@ -1,5 +1,6 @@
 <template>
   <div class="payments-table">
+    <div v-if="isLoading">Loading...</div>
     <h2>Payment History</h2>
 
     <div class="tabs">
@@ -12,9 +13,49 @@
         {{ tab }}
       </button>
     </div>
+    <div v-if="activeTab === 'All'" class="filter-controls">
+      <label>
+        <input type="checkbox" :checked="allSelected" @change="toggleAll" />
+        {{ allSelected ? "Unselect All" : "Select All" }}
+      </label>
+      <div class="card-filters">
+        <label
+          v-for="card in bills"
+          :key="card.name"
+          class="checkbox-label"
+          :style="{ '--check-color': colorFor(card.name) }"
+        >
+          <input
+            type="checkbox"
+            :value="card.name"
+            v-model="selectedCards"
+            class="custom-checkbox"
+          />
+          <span class="checkmark"></span>
+          <span class="card-name">{{ labelFor(card.name) }}</span>
+        </label>
+      </div>
+    </div>
 
     <div v-if="filteredPayments.length === 0" class="no-payments">
       No payments found.
+    </div>
+    <div v-else-if="activeTab === 'Grouped'">
+      <div
+        class="group-block"
+        v-for="group in groupedPayments"
+        :key="group.date"
+      >
+        <h4>{{ formatDate(group.date) }}</h4>
+        <ul>
+          <li v-for="p in group.entries" :key="p.id">
+            <span :style="{ color: colorFor(p.card_name) }"
+              >{{ labelFor(p.card_name) }}:</span
+            >
+            ${{ Number(p.amount_paid).toFixed(2) }}
+          </li>
+        </ul>
+      </div>
     </div>
 
     <table v-else>
@@ -31,7 +72,9 @@
       <tbody>
         <tr v-for="p in filteredPayments" :key="p.id">
           <td>{{ formatDate(p.date) }}</td>
-          <td :style="{ color: colorFor(p.card_name) }">{{ labelFor(p.card_name) }}</td>
+          <td :style="{ color: colorFor(p.card_name) }">
+            {{ labelFor(p.card_name) }}
+          </td>
           <td>${{ Number(p.amount_paid).toFixed(2) }}</td>
           <td>
             <button class="delete" @click="deletePayment(p.id)">🗑️</button>
@@ -46,27 +89,51 @@
 import { ref, computed, onMounted } from "vue";
 import { supabase } from "@/lib/supabase";
 import { payments, fetchPayments } from "@/stores/paymentStore";
-import { bills, fetchBills } from '@/stores/billStore';
+import { bills, fetchBills } from "@/stores/billStore";
 import dayjs from "dayjs";
 
 const activeTab = ref("Last Payment");
-const tabs = ["Last Payment", "Last Week", "This Month", "All Payments"];
+const selectedCards = ref([]);
+const allCardNames = computed(() => bills.value.map((b) => b.name));
+const allSelected = computed(
+  () => selectedCards.value.length === allCardNames.value.length
+);
+const isLoading = computed(() => !bills.value.length || !payments.value.length);
 
+const toggleAll = () => {
+  selectedCards.value = allSelected.value ? [] : [...allCardNames.value];
+};
+
+const tabs = ["Last Payment", "Last Week", "This Month", "All", "Grouped"];
 
 onMounted(() => {
   fetchPayments(supabase);
-  fetchBills();
+  fetchBills().then(() => {
+    selectedCards.value = bills.value.map((b) => b.name); // select all initially
+  });
 });
 
 const labelFor = (name) => {
-  const match = bills.value.find((b) => b.name === name);
+  const match = bills.value.find(
+    (b) => b.name.toLowerCase() === name.toLowerCase()
+  );
   return match?.label || name;
 };
 
 const colorFor = (name) => {
-  const match = bills.value.find((b) => b.name === name);
-  return match?.color || '#333';
+  const match = bills.value.find(
+    (b) => b.name.toLowerCase() === name.toLowerCase()
+  );
+  return match?.color || "#333";
 };
+
+const billsByName = computed(() => {
+  const map = {};
+  for (const bill of bills.value) {
+    map[bill.name] = bill;
+  }
+  return map;
+});
 
 const formatDate = (d) => {
   if (typeof d === "string" && d.match(/^\d{4}-\d{2}-\d{2}$/)) {
@@ -77,7 +144,7 @@ const formatDate = (d) => {
   return new Date(d).toLocaleDateString();
 };
 
-const emit = defineEmits(['payment-deleted']);
+const emit = defineEmits(["payment-deleted"]);
 
 const deletePayment = async (id) => {
   const { error } = await supabase.from("payments").delete().eq("id", id);
@@ -85,28 +152,46 @@ const deletePayment = async (id) => {
     console.error("❌ Delete failed:", error.message);
   } else {
     await fetchPayments(supabase); // refresh list
-    emit('payment-deleted'); // Notify parent
+    emit("payment-deleted"); // Notify parent
   }
 };
-
 
 const filteredPayments = computed(() => {
   const today = dayjs();
   switch (activeTab.value) {
-    case 'Last Payment':
+    case "Last Payment":
       const latestDate = payments.value[0]?.date;
       return payments.value.filter((p) => p.date === latestDate);
-    case 'Last Week':
-      const lastWeek = today.subtract(7, 'day');
+    case "Last Week":
+      const lastWeek = today.subtract(7, "day");
       return payments.value.filter((p) => dayjs(p.date).isAfter(lastWeek));
-    case 'This Month':
+    case "This Month":
       return payments.value.filter((p) => {
         const d = dayjs(p.date);
         return d.month() === today.month() && d.year() === today.year();
       });
+    case "All":
+      return payments.value.filter((p) =>
+        selectedCards.value.includes(p.card_name)
+      );
+
     default:
       return payments.value;
   }
+});
+
+const groupedPayments = computed(() => {
+  const groups = {};
+
+  payments.value.forEach((p) => {
+    const key = p.date;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(p);
+  });
+
+  return Object.entries(groups)
+    .sort((a, b) => new Date(b[0]) - new Date(a[0])) // Newest first
+    .map(([date, entries]) => ({ date, entries }));
 });
 </script>
 
@@ -180,6 +265,62 @@ const filteredPayments = computed(() => {
 
     &:hover {
       color: #a00;
+    }
+  }
+  .card-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+
+  .checkbox-label {
+    position: relative;
+    padding-left: 24px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    color: #333;
+
+    .custom-checkbox {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .checkmark {
+      position: absolute;
+      left: 0;
+      top: 2px;
+      height: 16px;
+      width: 16px;
+      background-color: #e2e2e2;
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+      border: 1px solid #ccc;
+    }
+
+    .custom-checkbox:checked ~ .checkmark {
+      background-color: var(--check-color, #4a90e2);
+      border-color: var(--check-color, #4a90e2);
+    }
+
+    .custom-checkbox:checked ~ .checkmark::after {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: 1px;
+      width: 4px;
+      height: 8px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    .card-name {
+      margin-left: 6px;
     }
   }
 }
