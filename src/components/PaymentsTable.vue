@@ -45,6 +45,7 @@
         class="group-block"
         v-for="group in groupedPayments"
         :key="group.date"
+        @click="() => (displayPaymentDetails(group))"
       >
         <h4>{{ formatDate(group.date) }}</h4>
         <ul>
@@ -82,6 +83,12 @@
         </tr>
       </tbody>
     </table>
+    <PaymentDetailsModal
+      v-if="showModal"
+      :group="selectedGroup"
+      :bills="bills"
+      @close="showModal = false"
+    />
   </div>
 </template>
 
@@ -91,7 +98,10 @@ import { supabase } from "@/lib/supabase";
 import { payments, fetchPayments } from "@/stores/paymentStore";
 import { bills, fetchBills } from "@/stores/billStore";
 import dayjs from "dayjs";
+import PaymentDetailsModal from '@/components/PaymentDetailsModal.vue';
 
+const showModal = ref(false);
+const selectedGroup = ref(null);
 const activeTab = ref("Last Payment");
 const selectedCards = ref([]);
 const allCardNames = computed(() => bills.value.map((b) => b.name));
@@ -104,7 +114,7 @@ const toggleAll = () => {
   selectedCards.value = allSelected.value ? [] : [...allCardNames.value];
 };
 
-const tabs = ["Last Payment", "Last Week", "This Month", "All", "Grouped"];
+const tabs = ["Last Payment", "Grouped", "Last Week", "This Month", "All"];
 
 onMounted(() => {
   fetchPayments(supabase);
@@ -156,6 +166,11 @@ const deletePayment = async (id) => {
   }
 };
 
+const displayPaymentDetails = (group) => {
+  selectedGroup.value = group;
+  showModal.value = true;
+};
+
 const filteredPayments = computed(() => {
   const today = dayjs();
   switch (activeTab.value) {
@@ -181,18 +196,27 @@ const filteredPayments = computed(() => {
 });
 
 const groupedPayments = computed(() => {
-  const groups = {};
-
-  payments.value.forEach((p) => {
-    const key = p.date;
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(p);
+  // date → payments[] map
+  const map = {};
+  payments.value.forEach(p => {
+    if (!map[p.date]) map[p.date] = [];
+    map[p.date].push(p);
   });
 
-  return Object.entries(groups)
-    .sort((a, b) => new Date(b[0]) - new Date(a[0])) // Newest first
-    .map(([date, entries]) => ({ date, entries }));
+  // Sort dates desc, then map into { date, entries, c_start }
+  return Object.keys(map)
+    .sort((a, b) => new Date(b) - new Date(a)) 
+    .map(date => {
+      const entries = map[date];
+      // Grab c_start from the very first payment row for that date
+      const raw = entries[0].c_start;
+      const c_start = Number(raw) || 0;
+      return { date, entries, c_start };
+    });
 });
+
+
+
 </script>
 
 <style scoped lang="scss">
@@ -227,8 +251,11 @@ const groupedPayments = computed(() => {
       font-weight: 500;
 
       &.active {
-        background-color: #005b96;
+        background-color: var(--color-blue);
         color: white;
+      }
+      &:hover {
+        background-color: #d1d5e0;
       }
     }
   }
@@ -260,11 +287,42 @@ const groupedPayments = computed(() => {
     border: none;
     cursor: pointer;
     font-size: 1.2rem;
-    color: #d11a2a;
+    color: var(--color-red);
     transition: color 0.2s;
 
     &:hover {
-      color: #a00;
+      color: var(--color-red);
+    }
+  }
+  .group-block {
+    margin-bottom: 1.5rem;
+    padding: 0.5rem;
+    background: #f9f9f9;
+    border-radius: 0.5rem;
+
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    &:hover {
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      background: #f1f4f8;
+      cursor: pointer;
+    }
+    h4 {
+      margin: 0 0 0.5rem;
+      color: #333;
+    }
+
+    ul {
+      list-style-type: none;
+      padding-left: 0;
+
+      li {
+        margin-bottom: 0.25rem;
+        color: #555;
+
+        span {
+          font-weight: bold;
+        }
+      }
     }
   }
   .card-filters {
@@ -296,15 +354,15 @@ const groupedPayments = computed(() => {
       top: 2px;
       height: 16px;
       width: 16px;
-      background-color: #e2e2e2;
+      background-color: var(--color-primary);
       border-radius: 4px;
       transition: background-color 0.2s ease;
       border: 1px solid #ccc;
     }
 
     .custom-checkbox:checked ~ .checkmark {
-      background-color: var(--check-color, #4a90e2);
-      border-color: var(--check-color, #4a90e2);
+      background-color: var(--color-blue);
+      border-color: var(--color-blue);
     }
 
     .custom-checkbox:checked ~ .checkmark::after {

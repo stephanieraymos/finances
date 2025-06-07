@@ -57,6 +57,7 @@ import { reactive, ref, computed, onMounted, defineEmits } from "vue";
 import { supabase } from "@/lib/supabase";
 import { bills, fetchBills } from "@/stores/billStore";
 import { fetchPayments } from "@/stores/paymentStore";
+import dayjs from "dayjs";
 
 const emit = defineEmits(["payment-saved"]);
 
@@ -64,10 +65,11 @@ onMounted(() => {
   fetchBills();
 });
 
-const today = new Date().toISOString().slice(0, 10);
+const today = dayjs().startOf("day");
+const todayString = today.format("YYYY-MM-DD");
 
 const form = reactive({
-  date: today,
+  date: todayString,
   c_start: null,
 });
 
@@ -83,16 +85,16 @@ const remainingBalance = computed(() => {
 const isDueSoon = (dueDay) => {
   if (!dueDay) return false;
 
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  let due = new Date(now.getFullYear(), now.getMonth(), dueDay);
+  // this month’s dueDay
+  let due = dayjs().date(dueDay).startOf("day");
 
-  // If the due date has already passed this month, bump to next month
-  if (due < today) {
-    due = new Date(now.getFullYear(), now.getMonth() + 1, dueDay);
+  // if that date already passed, bump to next month
+  if (due.isBefore(today)) {
+    due = due.add(1, "month");
   }
 
-  const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
+  // diff in days
+  const diffDays = due.diff(today, "day");
   return diffDays <= 7;
 };
 
@@ -169,19 +171,18 @@ const submitPayments = async () => {
 
         &:focus {
           outline: none;
-          border-color: #4a90e2;
+          border-color: var(--color-blue);
           box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
         }
       }
     }
     input.due-soon {
-      background-color: #ffe5e5 !important;
-      border-color: #ff4d4f !important;
+      border-color: var(--color-red) !important;
     }
     button {
       margin-top: 1rem;
       padding: 0.75rem;
-      background: #4a90e2;
+      background: var(--color-blue);
       color: white;
       font-size: 1rem;
       font-weight: 600;
@@ -190,7 +191,7 @@ const submitPayments = async () => {
       cursor: pointer;
 
       &:hover {
-        background: #3a78c2;
+        background: var(--color-blue);
       }
     }
   }
@@ -203,7 +204,7 @@ const submitPayments = async () => {
   }
   .total {
     font-weight: 600;
-    color: #1e3a8a;
+    color: var(--color-blue);
     justify-content: space-between;
 
     span {
