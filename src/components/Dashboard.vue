@@ -21,6 +21,17 @@
       <h3>Last Payment</h3>
       <p>No payments saved yet.</p>
     </div>
+    <div class="plan-btn">
+      <button @click="planNextWeek" class="btn btn-primary">
+        Plan Next Week
+      </button>
+    </div>
+    <NextWeekModal
+      v-if="showNextWeekModal"
+      :bills="nextWeekBills"
+      :extraData="nextWeekExtraData"
+      @close="showNextWeekModal = false"
+    />
 
     <h2>Upcoming Bills</h2>
     <ul class="bill-list">
@@ -31,7 +42,9 @@
         :style="{ color: bill.color }"
       >
         <span class="bill-name">{{ bill.name }}</span>
-        <span class="bill-days">due in {{ bill.daysLeft }} days</span>
+        <span class="bill-days"
+          >due in {{ bill.daysLeft }} days on {{ bill.due }}</span
+        >
       </li>
     </ul>
 
@@ -44,6 +57,10 @@
 import { ref, computed, onMounted } from "vue";
 import { supabase } from "@/lib/supabase.js";
 import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
+
+dayjs.extend(isBetween);
+import NextWeekModal from "./NextWeekModal.vue";
 import PaymentsForm from "./PaymentsForm.vue";
 import PaymentsTable from "./PaymentsTable.vue";
 import { fetchAllPayments, paymentGroups } from "@/stores/paymentStore";
@@ -51,7 +68,9 @@ import { fetchAllPayments, paymentGroups } from "@/stores/paymentStore";
 const bills = ref([]);
 const lastGroup = computed(() => paymentGroups.value[0] || null);
 const cardColors = ref({});
-console.log('paymentgroups', paymentGroups.value);
+const showNextWeekModal = ref(false);
+const nextWeekBills = ref([]);
+const nextWeekExtraData = ref([]);
 
 const formatDate = (date) => {
   return date ? dayjs(date).format("MM/DD/YYYY") : "N/A";
@@ -70,12 +89,63 @@ const daysUntilDue = (dueDay) => {
   return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
 };
 
-const sortedBills = computed(() => {
-  return bills.value
-    .map((bill) => ({
+const planNextWeek = async () => {
+  const today = dayjs();
+  const nextThursday =
+    today.day() <= 4
+      ? today.day(4) // this week’s Thursday, if today is Sun–Thu
+      : today.day(4).add(1, "week"); // otherwise next week’s Thursday
+
+  const windowStart = nextThursday.startOf("day");
+  const windowEnd = nextThursday.add(8, "day").endOf("day");
+
+  const { data: bills, error } = await supabase.from("bills").select("*");
+  if (error) {
+    console.error("Error fetching bills:", error);
+    return;
+  }
+
+  nextWeekBills.value = (bills || [])
+    .map((bill) => {
+      let due = windowStart.set("date", bill.due_day_of_month);
+      // if falls before Thu, roll over into next month
+      if (due.isBefore(windowStart, "day")) {
+        due = due.add(1, "month");
+      }
+      return { bill, due };
+    })
+    .filter(({ due }) => due.isBetween(windowStart, windowEnd, "day", "[]"))
+    .map(({ bill, due }) => ({
       ...bill,
-      daysLeft: daysUntilDue(bill.due_day_of_month),
-    }))
+      dueDate: dayjs(due).format("MM/DD/YYYY"),
+      daysFromThursday: due.diff(windowStart, "day"),
+      daysLeft: due.diff(dayjs().startOf("day"), "day"),
+    }));
+  nextWeekExtraData.value = {
+    thursdayDate: nextThursday.format("MM/DD/YYYY"),
+  };
+
+  showNextWeekModal.value = true;
+};
+
+const sortedBills = computed(() => {
+  const today = dayjs().startOf("day");
+
+  return bills.value
+    .map((bill) => {
+      let dueDate = dayjs().startOf("day").date(bill.due_day_of_month);
+
+      // if that’s already before today, bump it into next month
+      if (dueDate.isBefore(today, "day")) {
+        dueDate = dueDate.add(1, "month");
+      }
+
+      return {
+        ...bill,
+        due: dueDate.format("MM/DD"),
+        daysLeft: daysUntilDue(bill.due_day_of_month),
+      };
+    })
     .sort((a, b) => a.daysLeft - b.daysLeft);
 });
 
@@ -190,6 +260,24 @@ onMounted(async () => {
 
     strong {
       color: #334155;
+    }
+  }
+}
+.plan-btn {
+  text-align: center;
+  .btn {
+    padding: 0.75rem;
+    background: var(--color-blue);
+    color: white;
+    border: none;
+    border-radius: 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: #444;
     }
   }
 }
