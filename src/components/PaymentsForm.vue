@@ -53,16 +53,17 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted, defineEmits } from "vue";
+import { reactive, ref, computed, onMounted, defineEmits, watch } from "vue";
 import { supabase } from "@/lib/supabase";
 import { bills, fetchBills } from "@/stores/billStore";
-import { fetchPayments } from "@/stores/paymentStore";
+import { payments, fetchPayments } from "@/stores/paymentStore";
 import dayjs from "dayjs";
 
 const emit = defineEmits(["payment-saved"]);
 
-onMounted(() => {
-  fetchBills();
+onMounted(async () => {
+  await fetchBills();
+  await fetchPayments(supabase);
 });
 
 const today = dayjs().startOf("day");
@@ -72,6 +73,17 @@ const form = reactive({
   date: todayString,
   c_start: null,
 });
+
+// whenever date changes (or payments load), auto-fill c_start
+watch(
+  () => form.date,
+  (newDate) => {
+    // find any payment with that date
+    const match = payments.value.find(p => p.date === newDate);
+    form.c_start = match ? match.c_start : null;
+  },
+  { immediate: true }
+);
 
 const message = ref("");
 
@@ -92,10 +104,7 @@ const isDueSoon = (dueDay) => {
   if (due.isBefore(today)) {
     due = due.add(1, "month");
   }
-
-  // diff in days
-  const diffDays = due.diff(today, "day");
-  return diffDays <= 7;
+  return due.diff(today, "day") <= 7;
 };
 
 const submitPayments = async () => {
@@ -120,8 +129,9 @@ const submitPayments = async () => {
   } else {
     message.value = "✅ Payments saved!";
     await fetchPayments(supabase);
-    emit("payment-saved");
-    Object.assign(form, { date: today, c_start: null });
+    // reset form
+    form.date = todayString;
+    form.c_start = null;
     bills.value.forEach((bill) => (form[bill.name] = null));
   }
 };
