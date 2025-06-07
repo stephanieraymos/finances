@@ -125,7 +125,7 @@ async function saveNote() {
 }
 </script>
 
-<style scoped scss>
+<style scoped lang="scss">
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -181,13 +181,57 @@ async function saveNote() {
 .details-table tfoot th {
   border-top: 2px solid #333;
 }
-.note {
+.note-section {
   padding: 0 0.5rem 0.5rem 0.5rem;
   h3 {
     color: #333;
   }
 }
-.note-button {
-    
+.note-edit {
+  display: flex;
+  flex-direction: column;
+  textarea {
+    width: 95%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 0.25rem;
+    resize: vertical;
+  }
+}
+.note-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  button {
+    padding: 0.25rem 0.5rem;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    &.save-btn {
+      background: var(--color-blue);
+      color: white;
+    }
+    &.cancel-btn {
+      background: #ccc;
+      color: #333;
+    }
+  }
+}
+.note-display {
+  white-space: pre-wrap;
+  padding: 0.5rem;
+  background-color: #f9f9f9;
+}
+.note-display:hover {
+  cursor: pointer;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+.note-edit textarea {
+  width: auto%;
+  margin-bottom: 0.5rem;
+}
+.note-section .note-display {
+  white-space: pre-wrap;
 }
 </style>
