@@ -1,26 +1,21 @@
 <template>
   <div class="dashboard">
-    <div class="last-paid" v-if="lastPayment">
-      <h3>Last Payment</h3>
+    <div class="last-paid" v-if="lastGroup">
+      <p><strong>Date:</strong> {{ formatDate(lastGroup.date) }}</p>
       <p>
-        <strong>Date:</strong>
-        {{ formatDate(lastPayment[0]?.date) }}
+        <strong>Starting Balance:</strong> ${{ lastGroup.starting_balance }}
       </p>
-
       <p><strong>Total Paid:</strong> ${{ totalPaid }}</p>
-
-      <ul v-if="cardsPaid.length > 0">
+      <p><strong>Leftover:</strong> ${{ leftover.toFixed(2) }}</p>
+      <ul>
         <li
-          v-for="(entry, i) in cardsPaid"
-          :key="i"
-          :style="{ color: entry.color }"
+          v-for="p in lastGroup.payments"
+          :key="p.id"
+          :style="{ color: bills.find((b) => b.name === p.card_name)?.color }"
         >
-          {{ entry.card }}: ${{ entry.amount }}
+          {{ labelFor(p.card_name) }}: ${{ p.amount_paid }}
         </li>
       </ul>
-
-      <p><strong>Starting Balance:</strong> ${{ lastPayment[0]?.c_start }}</p>
-      <p><strong>Leftover:</strong> ${{ leftover }}</p>
     </div>
     <div class="last-paid" v-else>
       <h3>Last Payment</h3>
@@ -40,8 +35,8 @@
       </li>
     </ul>
 
-    <payments-form @payment-saved="fetchLastPayment" />
-    <payments-table @payment-deleted="fetchLastPayment" />
+    <payments-form @payment-saved="onSavedOrDeleted" />
+    <payments-table @payment-deleted="onSavedOrDeleted" />
   </div>
 </template>
 
@@ -51,10 +46,12 @@ import { supabase } from "@/lib/supabase.js";
 import dayjs from "dayjs";
 import PaymentsForm from "./PaymentsForm.vue";
 import PaymentsTable from "./PaymentsTable.vue";
+import { fetchAllPayments, paymentGroups } from "@/stores/paymentStore";
 
 const bills = ref([]);
-const lastPayment = ref(null);
+const lastGroup = computed(() => paymentGroups.value[0] || null);
 const cardColors = ref({});
+console.log('paymentgroups', paymentGroups.value);
 
 const formatDate = (date) => {
   return date ? dayjs(date).format("MM/DD/YYYY") : "N/A";
@@ -64,34 +61,6 @@ const fetchBills = async () => {
   const { data, error } = await supabase.from("bills").select("*");
   if (error) console.error("Error fetching bills:", error);
   else bills.value = data;
-};
-
-const fetchLastPayment = async () => {
-  const { data: latest, error: latestError } = await supabase
-    .from("payments")
-    .select("date")
-    .order("date", { ascending: false })
-    .limit(1);
-
-  if (latestError || !latest.length) {
-    console.error("Error finding latest payment date:", latestError);
-    lastPayment.value = null;
-    return;
-  }
-
-  const latestDate = latest[0].date;
-
-  const { data, error } = await supabase
-    .from("payments")
-    .select("*")
-    .eq("date", latestDate);
-
-  if (error) {
-    console.error("Error fetching last payments:", error);
-    lastPayment.value = null;
-  } else {
-    lastPayment.value = data;
-  }
 };
 
 const daysUntilDue = (dueDay) => {
@@ -110,13 +79,20 @@ const sortedBills = computed(() => {
     .sort((a, b) => a.daysLeft - b.daysLeft);
 });
 
-const totalPaid = computed(() => {
-  if (!lastPayment.value) return 0;
-  return lastPayment.value.reduce(
-    (sum, p) => sum + (Number(p.amount_paid) || 0),
-    0
+const labelFor = (name) => {
+  const b = bills.value.find(
+    (x) => x.name.toLowerCase() === name.toLowerCase()
   );
-});
+  return b?.label || name;
+};
+
+const totalPaid = computed(
+  () =>
+    lastGroup.value?.payments.reduce(
+      (sum, p) => sum + Number(p.amount_paid),
+      0
+    ) || 0
+);
 
 const cardsPaid = computed(() => {
   if (!lastPayment.value || !bills.value.length) return [];
@@ -134,16 +110,14 @@ const cardsPaid = computed(() => {
   });
 });
 
-const leftover = computed(() => {
-  if (!lastPayment.value) return 0;
-  const start = Number(lastPayment.value[0]?.c_start || 0);
-  const total = totalPaid.value;
-  return Number((start - total).toFixed(2));
-});
+const leftover = computed(
+  () => Number(lastGroup.value?.starting_balance || 0) - totalPaid.value
+);
+const onSavedOrDeleted = () => fetchAllPayments(supabase);
 
-onMounted(() => {
+onMounted(async () => {
   fetchBills();
-  fetchLastPayment();
+  await fetchAllPayments(supabase);
 });
 </script>
 

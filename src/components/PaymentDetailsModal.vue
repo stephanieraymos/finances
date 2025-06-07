@@ -30,34 +30,51 @@
             </tr>
             <tr>
               <th>Starting Balance</th>
-              <th class="diff-col">${{ Number(group.c_start).toFixed(2) }}</th>
+              <th>${{ Number(group.c_start).toFixed(2) }}</th>
             </tr>
-            <tr></tr>
-            <th>Leftover</th>
-            <th class="diff-col">
-              ${{ (Number(group.c_start) - total).toFixed(2) }}
-            </th>
+            <tr>
+              <th>Leftover</th>
+              <th class="diff-col">
+                ${{ (Number(group.c_start) - total).toFixed(2) }}
+              </th>
+            </tr>
           </tfoot>
         </table>
+        <div class="note-section">
+          <h3>Note:</h3>
+          <div v-if="!isEditing" class="note-display" @click="startEdit">
+            {{ noteText || "Click to add a note..." }}
+          </div>
+          <div v-else class="note-edit">
+            <textarea v-model="noteText" rows="4"></textarea>
+            <div class="note-buttons">
+              <button @click="saveNote" class="save-btn">Save</button>
+              <button @click="cancelEdit" class="cancel-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { supabase } from "@/lib/supabase";
+import { fetchAllPayments } from "@/stores/paymentStore";
 import dayjs from "dayjs";
 const props = defineProps({
   group: {
     type: Object,
     required: true,
   },
-  bills: {
-    type: Array,
-    required: true,
-  },
+  bills: Array,
 });
 const emit = defineEmits(["close"]);
+
+// Editing state
+const isEditing = ref(false);
+const noteText = ref(props.group.note || "");
 
 // Format date for header
 const formattedDate = computed(() => {
@@ -83,9 +100,32 @@ const colorFor = (name) => {
 function close() {
   emit("close");
 }
+function startEdit() {
+  isEditing.value = true;
+}
+
+function cancelEdit() {
+  noteText.value = props.group.note || "";
+  isEditing.value = false;
+}
+
+async function saveNote() {
+  const { error } = await supabase
+    .from("payment_groups")
+    .update({ note: noteText.value })
+    .eq("date", props.group.date);
+
+  if (error) {
+    console.error("Error saving note:", error.message);
+  } else {
+    // Refresh store
+    await fetchAllPayments(supabase);
+    isEditing.value = false;
+  }
+}
 </script>
 
-<style scoped>
+<style scoped scss>
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -140,5 +180,14 @@ function close() {
 }
 .details-table tfoot th {
   border-top: 2px solid #333;
+}
+.note {
+  padding: 0 0.5rem 0.5rem 0.5rem;
+  h3 {
+    color: #333;
+  }
+}
+.note-button {
+    
 }
 </style>

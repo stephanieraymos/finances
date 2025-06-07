@@ -42,18 +42,19 @@
     </div>
     <div v-else-if="activeTab === 'Grouped'">
       <div
-        class="group-block"
         v-for="group in groupedPayments"
         :key="group.date"
-        @click="() => (displayPaymentDetails(group))"
+        class="group-block"
+        @click="displayPaymentDetails(group)"
       >
         <h4>{{ formatDate(group.date) }}</h4>
+        <p class="note" v-if="group.note">{{ group.note }}</p>
         <ul>
           <li v-for="p in group.entries" :key="p.id">
-            <span :style="{ color: colorFor(p.card_name) }"
-              >{{ labelFor(p.card_name) }}:</span
+            <span :style="{ color: colorFor(p.card_name) }">
+              {{ labelFor(p.card_name) }}</span
             >
-            ${{ Number(p.amount_paid).toFixed(2) }}
+            : ${{ p.amount_paid.toFixed(2) }}
           </li>
         </ul>
       </div>
@@ -95,10 +96,14 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { supabase } from "@/lib/supabase";
-import { payments, fetchPayments } from "@/stores/paymentStore";
+import {
+  payments,
+  paymentGroups,
+  fetchAllPayments,
+} from "@/stores/paymentStore";
 import { bills, fetchBills } from "@/stores/billStore";
 import dayjs from "dayjs";
-import PaymentDetailsModal from '@/components/PaymentDetailsModal.vue';
+import PaymentDetailsModal from "@/components/PaymentDetailsModal.vue";
 
 const showModal = ref(false);
 const selectedGroup = ref(null);
@@ -109,7 +114,7 @@ const allSelected = computed(
   () => selectedCards.value.length === allCardNames.value.length
 );
 const isLoading = computed(() => !bills.value.length || !payments.value.length);
-
+console.log('bills', bills);
 const toggleAll = () => {
   selectedCards.value = allSelected.value ? [] : [...allCardNames.value];
 };
@@ -117,7 +122,7 @@ const toggleAll = () => {
 const tabs = ["Last Payment", "Grouped", "Last Week", "This Month", "All"];
 
 onMounted(() => {
-  fetchPayments(supabase);
+  fetchAllPayments(supabase);
   fetchBills().then(() => {
     selectedCards.value = bills.value.map((b) => b.name); // select all initially
   });
@@ -161,7 +166,7 @@ const deletePayment = async (id) => {
   if (error) {
     console.error("❌ Delete failed:", error.message);
   } else {
-    await fetchPayments(supabase); // refresh list
+    await fetchAllPayments(supabase); // refresh list
     emit("payment-deleted"); // Notify parent
   }
 };
@@ -196,27 +201,13 @@ const filteredPayments = computed(() => {
 });
 
 const groupedPayments = computed(() => {
-  // date → payments[] map
-  const map = {};
-  payments.value.forEach(p => {
-    if (!map[p.date]) map[p.date] = [];
-    map[p.date].push(p);
-  });
-
-  // Sort dates desc, then map into { date, entries, c_start }
-  return Object.keys(map)
-    .sort((a, b) => new Date(b) - new Date(a)) 
-    .map(date => {
-      const entries = map[date];
-      // Grab c_start from the very first payment row for that date
-      const raw = entries[0].c_start;
-      const c_start = Number(raw) || 0;
-      return { date, entries, c_start };
-    });
+  return paymentGroups.value.map((g) => ({
+    date: g.date,
+    entries: g.payments,
+    c_start: g.starting_balance,
+    note: g.note,
+  }));
 });
-
-
-
 </script>
 
 <style scoped lang="scss">
@@ -354,15 +345,15 @@ const groupedPayments = computed(() => {
       top: 2px;
       height: 16px;
       width: 16px;
-      background-color: var(--color-primary);
+      background-color: var(--color-text-primary);
       border-radius: 4px;
       transition: background-color 0.2s ease;
       border: 1px solid #ccc;
     }
 
     .custom-checkbox:checked ~ .checkmark {
-      background-color: var(--color-blue);
-      border-color: var(--color-blue);
+      background-color: var(--check-color);
+      border-color: var(--check-color);
     }
 
     .custom-checkbox:checked ~ .checkmark::after {

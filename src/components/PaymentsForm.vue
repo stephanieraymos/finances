@@ -29,15 +29,9 @@
           :class="{ 'due-soon': isDueSoon(bill.due_day_of_month) }"
         />
       </div>
-
-      <div class="form-group" v-for="card in cards" :key="card.key">
-        <label :for="card.key">{{ card.label }}:</label>
-        <input
-          :id="card.key"
-          type="number"
-          v-model.number="form[card.key]"
-          step="0.01"
-        />
+      <div class="form-group">
+        <label for="note">Note</label>
+        <input id="note" type="text" v-model="form.note" />
       </div>
 
       <div class="form-group total">
@@ -56,14 +50,18 @@
 import { reactive, ref, computed, onMounted, defineEmits, watch } from "vue";
 import { supabase } from "@/lib/supabase";
 import { bills, fetchBills } from "@/stores/billStore";
-import { payments, fetchPayments } from "@/stores/paymentStore";
+import {
+  fetchAllPayments,
+  paymentGroups,
+  payments,
+} from "@/stores/paymentStore";
 import dayjs from "dayjs";
 
 const emit = defineEmits(["payment-saved"]);
 
 onMounted(async () => {
   await fetchBills();
-  await fetchPayments(supabase);
+  await fetchAllPayments(supabase);
 });
 
 const today = dayjs().startOf("day");
@@ -72,15 +70,16 @@ const todayString = today.format("YYYY-MM-DD");
 const form = reactive({
   date: todayString,
   c_start: null,
+  note: null
 });
 
 // whenever date changes (or payments load), auto-fill c_start
 watch(
-  () => form.date,
-  (newDate) => {
-    // find any payment with that date
-    const match = payments.value.find(p => p.date === newDate);
-    form.c_start = match ? match.c_start : null;
+  [() => form.date, () => paymentGroups.value],
+  ([newDate]) => {
+    const batch = paymentGroups.value.find((g) => g.date === newDate);
+    form.c_start = batch ? batch.starting_balance : null;
+    form.note = batch ? batch.note : null;
   },
   { immediate: true }
 );
@@ -108,30 +107,47 @@ const isDueSoon = (dueDay) => {
 };
 
 const submitPayments = async () => {
-  const toInsert = bills.value
-    .filter((bill) => form[bill.name] > 0)
-    .map((bill) => ({
-      date: form.date,
-      card_name: bill.name,
-      amount_paid: form[bill.name],
-      c_start: form.c_start,
-    }));
-
-  if (toInsert.length === 0) {
-    message.value = "⚠️ No amounts entered.";
+  // upsert the group row and get back its id
+  const {
+    data: batch,
+    error: batchErr,
+  } = await supabase
+    .from("payment_groups")
+    .upsert(
+      {
+        date: form.date,
+        starting_balance: form.c_start,
+        note: form.note || null,
+      },
+      { onConflict: "date" }
+    )
+    .select("id")
+    .single();
+  if (batchErr) {
+    message.value = "❌ Could not save group: " + batchErr.message;
     return;
   }
 
-  const { error } = await supabase.from("payments").insert(toInsert);
+  // insert individual payment lines
+  const toInsert = bills.value
+    .filter((b) => form[b.name] > 0)
+    .map((b) => ({
+      date: form.date,
+      card_name: b.name,
+      amount_paid: form[b.name],
+      group_id: batch.id,
+    }));
 
-  if (error) {
-    message.value = "❌ Failed to save: " + error.message;
+  const { error: payErr } = await supabase.from("payments").insert(toInsert);
+  if (payErr) {
+    message.value = "❌ Could not save payments: " + payErr.message;
   } else {
-    message.value = "✅ Payments saved!";
-    await fetchPayments(supabase);
+    message.value = "✅ Saved!";
+    await fetchAllPayments(supabase);
     // reset form
     form.date = todayString;
     form.c_start = null;
+    form.note = null;
     bills.value.forEach((bill) => (form[bill.name] = null));
   }
 };
