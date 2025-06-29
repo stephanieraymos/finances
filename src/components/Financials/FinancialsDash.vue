@@ -225,7 +225,7 @@
       border-radius: 0.6rem;
       font-weight: 500;
       font-size: 1.05rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Darker shadow */
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);;
       transition: transform 0.2s;
 
       &:hover {
@@ -247,23 +247,38 @@
   }
 }
 .last-paid {
-  background: var(--dark-shade-3); /* Darker background */
+  background: var(--color-primary);
   border-radius: 0.75rem;
   padding: 1.5rem;
   margin-bottom: 2rem;
   font-family: "Inter", sans-serif;
 
   h3 {
-    margin: 0 0 0.75rem;
+    margin: .75rem 0 0.75rem;
     font-size: 1.25rem;
+    background: var(--color-blue);
+    width: 50%;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
   }
 
   p {
-    margin: 0.25rem 0;
+    margin: 0.25rem;
     font-size: 0.95rem;
 
     strong {
       color: #f8fafc; 
+    }
+  }
+  li {
+    margin: 0.25rem 0;
+    font-size: 0.95rem;
+    list-style-type: none;
+
+    &:before {
+      content: "•";
+      color: var(--text-primary); /* Light text color */
+      margin-right: 0.5rem;
     }
   }
 }
@@ -274,15 +289,15 @@
     padding: 0.75rem 1.5rem;
     border: none;
     border-radius: 0.5rem;
-    background-color: #475569; /* Dark button background */
-    color: #e2e8f0; /* Light text color */
+    color: var(--text-primary);
+    background-color: var(--color-blue);
     cursor: pointer;
     font-size: 1rem;
     font-weight: 600;
     transition: background-color 0.2s;
 
     &:hover {
-      background-color: #64748b; /* Slightly lighter hover effect */
+      background-color: var(--shade-4);
     }
   }
 }

@@ -1,53 +1,35 @@
 <template>
-  <div>
-    <div>
-      <nav>
-        <button @click="activeTab = 'financials'" :class="{ active: activeTab === 'financials' }">Financials</button>
-        <button @click="activeTab = 'money'" :class="{ active: activeTab === 'money' }">Money</button>
-        <button @click="activeTab = 'life'" :class="{ active: activeTab === 'life' }">Life</button>
-      </nav>
-      <div v-if="activeTab === 'financials'">
-        <FinancialsDash />
-      </div>
-      <div v-if="activeTab === 'money'">
-        <MoneyDash />
-      </div>
-      <div v-if="activeTab === 'life'">
-        <LifeDash />
-      </div>
-    </div>
-  </div>
+  <nav>
+    <router-link to="financials" :class="{ active: isActive('financials') }">Financials</router-link>
+    <router-link to="money" :class="{ active: isActive('money') }">Money</router-link>
+    <router-link to="life" :class="{ active: isActive('life') }">Life</router-link>
+  </nav>
+  <router-view />
 </template>
 
 <script setup>
-import FinancialsDash from './Financials/FinancialsDash.vue';
-import MoneyDash from './Money/MoneyDash.vue';
-import LifeDash from './Life/LifeDash.vue';
-import { ref } from 'vue';
-const activeTab = ref('financials');
+import { useRoute } from "vue-router";
 
-
-const title = ref('Dashboard');
+const route = useRoute();
+const isActive = (tab) => route.path.includes(tab);
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 nav {
   display: flex;
-  gap: 10px;
+  gap: 0px;
   margin-bottom: 20px;
 }
-button {
-  padding: 10px 20px;
-  border: none;
-  background-color: #f0f0f0;
-  cursor: pointer;
+nav a {
+  padding: 5px;
+  text-decoration: none;
+  color: var(--text-primary);
+  background-color: var(--shade-3);
+  transition: background-color 0.3s, color 0.3s;
 }
-button.active {
+.router-link-active,
+.active {
   background-color: var(--color-blue);
-  color: white;
-}
-button:hover {
-  background-color: #e0e0e0;
-  color: var(--color-blue);
+  color: var(--text-primary);
 }
 </style>

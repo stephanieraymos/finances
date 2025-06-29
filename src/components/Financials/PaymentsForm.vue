@@ -155,7 +155,6 @@ const submitPayments = async () => {
 
 <style scoped lang="scss">
 .payment-form {
-  max-width: 600px;
   margin: 2rem auto;
   padding: 2rem;
   border-radius: 1rem;

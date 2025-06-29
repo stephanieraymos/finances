@@ -118,13 +118,20 @@ onMounted(async () => {
 }
 * {
   padding: 0;
+  color: var(--text-primary);
   margin: 0;
   box-sizing: border-box;
   -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased;
 }
+html, body {
+  height: 100%;
+  width: 100%;
+  font-size: 16px;
+  line-height: 1.5;
+  background-color: var(--color-dark-background);
+}
 #app {
-  color: #101010;
   background: var(--dark-shade-1);
   display: flex;
   flex-direction: column;
