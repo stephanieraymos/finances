@@ -159,15 +159,13 @@ const submitPayments = async () => {
   margin: 2rem auto;
   padding: 2rem;
   border-radius: 1rem;
-  background: #ffffff;
+  background: var(--color-primary);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  font-family: "Inter", sans-serif;
 
   h2 {
     font-size: 1.6rem;
     margin-bottom: 1.5rem;
     text-align: center;
-    color: #333;
   }
 
   form {
@@ -184,12 +182,12 @@ const submitPayments = async () => {
       label {
         flex: 2;
         font-weight: 500;
-        color: #444;
       }
 
       input {
         flex: 1;
         padding: 0.5rem 0.75rem;
+        background: var(--shade-8);
         border: 1px solid #ccc;
         border-radius: 0.5rem;
         font-size: 1rem;
@@ -203,7 +201,13 @@ const submitPayments = async () => {
       }
     }
     input.due-soon {
-      border-color: var(--color-red) !important;
+      border: 1px solid var(--color-red);
+      background: linear-gradient(
+        to right,
+        rgba(255, 0, 0, 0.061),
+        rgba(255, 0, 0, 0.05)
+      );
+      color: var(--text-primary);
     }
     button {
       margin-top: 1rem;

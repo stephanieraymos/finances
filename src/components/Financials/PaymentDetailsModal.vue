@@ -135,7 +135,7 @@ async function saveNote() {
   justify-content: center;
 }
 .modal {
-  background: white;
+  background: var(--color-primary);;
   border-radius: 0.5rem;
   max-width: 500px;
   width: 90%;
@@ -213,7 +213,6 @@ async function saveNote() {
       color: white;
     }
     &.cancel-btn {
-      background: #ccc;
       color: #333;
     }
   }
@@ -221,7 +220,6 @@ async function saveNote() {
 .note-display {
   white-space: pre-wrap;
   padding: 0.5rem;
-  background-color: #f9f9f9;
 }
 .note-display:hover {
   cursor: pointer;

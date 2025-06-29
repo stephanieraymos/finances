@@ -48,6 +48,28 @@
         @click="displayPaymentDetails(group)"
       >
         <h4>{{ formatDate(group.date) }}</h4>
+        <div class="in-out">
+          <p v-if="group.c_start">
+            Starting Balance: ${{ group.c_start.toFixed(2) }}
+          </p>
+          <p v-if="group.entries.length > 1">
+            Total Paid: ${{
+              group.entries
+                .reduce((sum, p) => sum + p.amount_paid, 0)
+                .toFixed(2)
+            }}
+          </p>
+          <p>
+            Diff: ${{
+              group.c_start
+                ? (
+                    group.c_start -
+                    group.entries.reduce((sum, p) => sum + p.amount_paid, 0)
+                  ).toFixed(2)
+                : "N/A"
+            }}
+          </p>
+        </div>
         <p class="note" v-if="group.note">{{ group.note }}</p>
         <ul>
           <li v-for="p in group.entries" :key="p.id">
@@ -60,30 +82,47 @@
       </div>
     </div>
 
-    <table v-else>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Card</th>
-          <th>Amount</th>
-          <th></th>
-          <!-- for delete button -->
-        </tr>
-      </thead>
+    <div v-else>
+      <div v-if="activeTab === 'Last Payment'">
+        <div v-if="filteredPayments.length > 0">
+          <div class="in-out">
+            <p v-if="filteredPayments.length > 0 && groupedPayments.length > 0">
+            Starting Balance: ${{ groupedPayments[0].c_start.toFixed(2) }}
+          </p>
+          <p v-if="filteredPayments.length > 0">
+            Total Paid: ${{ filteredPayments.reduce((sum, p) => sum + p.amount_paid, 0).toFixed(2) }}
+          </p>
+          <p v-if="filteredPayments.length > 0 && groupedPayments.length > 0">
+            Leftover: ${{ (groupedPayments[0].c_start - filteredPayments.reduce((sum, p) => sum + p.amount_paid, 0)).toFixed(2) }}
+          </p>
+          </div>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Card</th>
+            <th>Amount</th>
+            <th></th>
+            <!-- for delete button -->
+          </tr>
+        </thead>
 
-      <tbody>
-        <tr v-for="p in filteredPayments" :key="p.id">
-          <td>{{ formatDate(p.date) }}</td>
-          <td :style="{ color: colorFor(p.card_name) }">
-            {{ labelFor(p.card_name) }}
-          </td>
-          <td>${{ Number(p.amount_paid).toFixed(2) }}</td>
-          <td>
-            <button class="delete" @click="deletePayment(p.id)">🗑️</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+        <tbody>
+          <tr v-for="p in filteredPayments" :key="p.id">
+            <td>{{ formatDate(p.date) }}</td>
+            <td :style="{ color: colorFor(p.card_name) }">
+              {{ labelFor(p.card_name) }}
+            </td>
+            <td>${{ Number(p.amount_paid).toFixed(2) }}</td>
+            <td>
+              <button class="delete" @click="deletePayment(p.id)">🗑️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <PaymentDetailsModal
       v-if="showModal"
       :group="selectedGroup"
@@ -103,7 +142,7 @@ import {
 } from "@/stores/paymentStore";
 import { bills, fetchBills } from "@/stores/billStore";
 import dayjs from "dayjs";
-import PaymentDetailsModal from "@/components/PaymentDetailsModal.vue";
+import PaymentDetailsModal from "@/components/Financials/PaymentDetailsModal.vue";
 
 const showModal = ref(false);
 const selectedGroup = ref(null);
@@ -114,7 +153,7 @@ const allSelected = computed(
   () => selectedCards.value.length === allCardNames.value.length
 );
 const isLoading = computed(() => !bills.value.length || !payments.value.length);
-console.log('bills', bills);
+console.log("bills", bills);
 const toggleAll = () => {
   selectedCards.value = allSelected.value ? [] : [...allCardNames.value];
 };
@@ -171,6 +210,12 @@ const deletePayment = async (id) => {
   }
 };
 
+const editPayment = async (payment) => {
+  // This function can be expanded to handle editing payments
+  console.log("Edit payment:", payment);
+  // You can implement the logic to open a modal or navigate to an edit page
+};
+
 const displayPaymentDetails = (group) => {
   selectedGroup.value = group;
   showModal.value = true;
@@ -211,11 +256,51 @@ const groupedPayments = computed(() => {
 </script>
 
 <style scoped lang="scss">
+.table-container {
+  max-width: 100%;
+  margin: 2rem auto;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: var(--color-dark-background); /* Dark background */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* Dark shadow */
+  font-family: "Inter", sans-serif;
+  color: #e2e8f0; /* Light text color */
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--color-primary);
+    border-radius: 0.5rem;
+    overflow: hidden;
+
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #475569; /* Dark border */
+      color: #e2e8f0; /* Light text color */
+    }
+
+    th {
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background: #64748b; /* Hover effect */
+    }
+  }
+
+  .no-data {
+    text-align: center;
+    padding: 1rem;
+    color: #94a3b8; /* Muted light color */
+  }
+}
+
 .payments-table {
   max-width: 700px;
   margin: 2rem auto;
   padding: 2rem;
-  background: #fff;
+  background: var(--color-primary);
   border-radius: 1rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
   font-family: "Inter", sans-serif;
@@ -223,7 +308,6 @@ const groupedPayments = computed(() => {
   h2 {
     text-align: center;
     margin-bottom: 1rem;
-    color: #333;
   }
 
   .tabs {
@@ -237,7 +321,8 @@ const groupedPayments = computed(() => {
       padding: 0.6rem 1rem;
       border: none;
       border-radius: 0.5rem;
-      background-color: #e4e8f0;
+      background-color: var(--shade-4);
+      color: var(--color-text-primary);
       cursor: pointer;
       font-weight: 500;
 
@@ -246,7 +331,7 @@ const groupedPayments = computed(() => {
         color: white;
       }
       &:hover {
-        background-color: #d1d5e0;
+        background-color: var(--shade-5);
       }
     }
   }
@@ -259,11 +344,22 @@ const groupedPayments = computed(() => {
     td {
       padding: 0.75rem;
       text-align: left;
-      border-bottom: 1px solid #ddd;
+      border-bottom: 1px solid var(--shade-4);
     }
 
     th {
-      background-color: #f1f4f8;
+      background-color: var(--shade-3);
+    }
+  }
+  .in-out {
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+    background: var(--color-primary);
+    border-radius: 8px;
+    padding: 0.5rem;
+
+    p {
+      margin: 0.2rem;
     }
   }
 
@@ -288,7 +384,7 @@ const groupedPayments = computed(() => {
   .group-block {
     margin-bottom: 1.5rem;
     padding: 0.5rem;
-    background: #f9f9f9;
+    background: var(--shade-3);
     border-radius: 0.5rem;
 
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -299,7 +395,6 @@ const groupedPayments = computed(() => {
     }
     h4 {
       margin: 0 0 0.5rem;
-      color: #333;
     }
 
     ul {
@@ -308,7 +403,6 @@ const groupedPayments = computed(() => {
 
       li {
         margin-bottom: 0.25rem;
-        color: #555;
 
         span {
           font-weight: bold;
@@ -320,7 +414,7 @@ const groupedPayments = computed(() => {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
-    margin-top: 0.5rem;
+    margin: 0.5rem;
   }
 
   .checkbox-label {
@@ -331,7 +425,6 @@ const groupedPayments = computed(() => {
     font-size: 0.95rem;
     display: flex;
     align-items: center;
-    color: #333;
 
     .custom-checkbox {
       position: absolute;
@@ -345,10 +438,8 @@ const groupedPayments = computed(() => {
       top: 2px;
       height: 16px;
       width: 16px;
-      background-color: var(--color-text-primary);
       border-radius: 4px;
       transition: background-color 0.2s ease;
-      border: 1px solid #ccc;
     }
 
     .custom-checkbox:checked ~ .checkmark {

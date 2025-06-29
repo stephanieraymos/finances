@@ -13,7 +13,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 const startDate = ref('');
 const checkingBalance = ref('');

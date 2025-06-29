@@ -24,6 +24,7 @@ onMounted(async () => {
 </script>
 <style lang="scss">
 :root {
+  --color-dark-background: #1b1a1d;
   --color-dark-gray: #353535;
   --color-medium-gray: #777575;
   --color-light-gray: #909090;
@@ -114,5 +115,20 @@ onMounted(async () => {
   --text-primary: var(--color-white); /* contrast againt primary */
 
   --font: "Radio Canada", sans-serif;
+}
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+}
+#app {
+  color: #101010;
+  background: var(--dark-shade-1);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font);
+  /* TODO: Add dark/light mode support */
 }
 </style>
