@@ -270,7 +270,7 @@ onMounted(async () => {
     margin: 0.75rem 0 0.75rem;
     font-size: 1.25rem;
     background: var(--color-blue);
-    width: 50%;
+    width: 75%;
     padding: 0.5rem;
     border-radius: 0.5rem;
   }
