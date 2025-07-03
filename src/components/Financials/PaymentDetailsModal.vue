@@ -135,7 +135,7 @@ async function saveNote() {
   justify-content: center;
 }
 .modal {
-  background: var(--color-primary);;
+  background: var(--cards);;
   border-radius: 0.5rem;
   max-width: 500px;
   width: 90%;
@@ -184,16 +184,16 @@ async function saveNote() {
 .note-section {
   padding: 0 0.5rem 0.5rem 0.5rem;
   h3 {
-    color: #333;
+    color: var(--color-blue);
   }
 }
 .note-edit {
   display: flex;
   flex-direction: column;
   textarea {
+    background: var(--shade-3);
     width: 95%;
     padding: 0.5rem;
-    border: 1px solid #ddd;
     border-radius: 0.25rem;
     resize: vertical;
   }
@@ -226,7 +226,7 @@ async function saveNote() {
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
 }
 .note-edit textarea {
-  width: auto%;
+  width: auto;
   margin-bottom: 0.5rem;
 }
 .note-section .note-display {

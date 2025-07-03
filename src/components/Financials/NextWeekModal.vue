@@ -72,7 +72,7 @@ const close = () => {
 }
 
 .modal {
-  background: var(--color-primary);
+  background: var(--cards);
   border-radius: 8px;
   width: 90%;
   max-width: 600px;
@@ -119,7 +119,7 @@ const close = () => {
 }
 
 .details-table th {
-  background: var(--color-primary);
+  background: var(--cards);
   font-weight: 600;
 }
 

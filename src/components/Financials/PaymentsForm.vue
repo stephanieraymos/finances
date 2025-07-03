@@ -158,7 +158,7 @@ const submitPayments = async () => {
   margin: 2rem auto;
   padding: 2rem;
   border-radius: 1rem;
-  background: var(--color-primary);
+  background: var(--cards);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 
   h2 {
@@ -186,15 +186,13 @@ const submitPayments = async () => {
       input {
         flex: 1;
         padding: 0.5rem 0.75rem;
-        background: var(--shade-8);
-        border: 1px solid #ccc;
+        background: rgba(128, 128, 128, 0.1);
         border-radius: 0.5rem;
         font-size: 1rem;
         text-align: right;
 
         &:focus {
           outline: none;
-          border-color: var(--color-blue);
           box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
         }
       }
@@ -212,7 +210,7 @@ const submitPayments = async () => {
       margin-top: 1rem;
       padding: 0.75rem;
       background: var(--color-blue);
-      color: white;
+      color: var(--text-primary);
       font-size: 1rem;
       font-weight: 600;
       border: none;

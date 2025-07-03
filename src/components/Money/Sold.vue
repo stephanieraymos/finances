@@ -131,7 +131,7 @@ li {
 .link a {
   font-size: small;
   color: var(--color-blue);
-  background: var(--color-primary);
+  background: var(--cards);
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   text-decoration: none;

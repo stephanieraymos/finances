@@ -87,14 +87,26 @@
         <div v-if="filteredPayments.length > 0">
           <div class="in-out">
             <p v-if="filteredPayments.length > 0 && groupedPayments.length > 0">
-            Starting Balance: ${{ groupedPayments[0].c_start.toFixed(2) }}
-          </p>
-          <p v-if="filteredPayments.length > 0">
-            Total Paid: ${{ filteredPayments.reduce((sum, p) => sum + p.amount_paid, 0).toFixed(2) }}
-          </p>
-          <p v-if="filteredPayments.length > 0 && groupedPayments.length > 0">
-            Leftover: ${{ (groupedPayments[0].c_start - filteredPayments.reduce((sum, p) => sum + p.amount_paid, 0)).toFixed(2) }}
-          </p>
+              Starting Balance: ${{ groupedPayments[0].c_start.toFixed(2) }}
+            </p>
+            <p v-if="filteredPayments.length > 0">
+              Total Paid: ${{
+                filteredPayments
+                  .reduce((sum, p) => sum + p.amount_paid, 0)
+                  .toFixed(2)
+              }}
+            </p>
+            <p v-if="filteredPayments.length > 0 && groupedPayments.length > 0">
+              Leftover: ${{
+                (
+                  groupedPayments[0].c_start -
+                  filteredPayments.reduce((sum, p) => sum + p.amount_paid, 0)
+                ).toFixed(2)
+              }}
+            </p>
+            <p v-if="groupedPayments.length > 0 && groupedPayments[0].note">
+              Note: {{ groupedPayments[0].note }}
+            </p>
           </div>
         </div>
       </div>
@@ -269,11 +281,12 @@ const groupedPayments = computed(() => {
   table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--color-primary);
+    background: var(--cards);
     border-radius: 0.5rem;
     overflow: hidden;
 
-    th, td {
+    th,
+    td {
       padding: 0.75rem 1rem;
       text-align: left;
       border-bottom: 1px solid #475569; /* Dark border */
@@ -297,10 +310,9 @@ const groupedPayments = computed(() => {
 }
 
 .payments-table {
-  max-width: 700px;
   margin: 2rem auto;
   padding: 2rem;
-  background: var(--color-primary);
+  background: var(--cards);
   border-radius: 1rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
   font-family: "Inter", sans-serif;
@@ -354,7 +366,7 @@ const groupedPayments = computed(() => {
   .in-out {
     margin-bottom: 0.5rem;
     font-size: 0.95rem;
-    background: var(--color-primary);
+    background: rgba(gray, 0.1);
     border-radius: 8px;
     padding: 0.5rem;
 
@@ -384,13 +396,12 @@ const groupedPayments = computed(() => {
   .group-block {
     margin-bottom: 1.5rem;
     padding: 0.5rem;
-    background: var(--shade-3);
     border-radius: 0.5rem;
+    background: var(--highlight);
 
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     &:hover {
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-      background: #f1f4f8;
       cursor: pointer;
     }
     h4 {

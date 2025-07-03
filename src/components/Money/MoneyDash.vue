@@ -5,9 +5,14 @@
 
     <form @submit.prevent="addTransaction">
       <input
+        type="text"
+        v-model="transaction.title"
+        placeholder="Title (optional)"
+      />
+      <input
         type="number"
         v-model.number="transaction.amount"
-        placeholder="Amount"
+        placeholder="Amount +/-"
         step="0.01"
         required
       />
@@ -18,15 +23,10 @@
       />
       <input
         type="text"
-        v-model="transaction.title"
-        placeholder="Title (optional)"
-      />
-      <input
-        type="text"
         v-model="transaction.tag"
         placeholder="Tag (optional)"
       />
-      <button type="submit">Add Transaction</button>
+      <button type="submit" style="cursor: pointer">Add Transaction</button>
     </form>
 
     <h3>Transaction History</h3>
@@ -61,7 +61,10 @@
             Linked Sale
           </router-link>
         </div>
+
         <small>({{ formatDate(tx.date || tx.created_at) }})</small>
+        <button class="edit-btn" @click="editTransaction(tx.id)">✏️</button>
+        <button class="delete-btn" @click="deleteTransaction(tx.id)">🗑️</button>
       </li>
     </ul>
   </div>
@@ -105,8 +108,6 @@ const fetchTransactions = async () => {
 };
 
 const addTransaction = async () => {
-  if (transaction.value.amount === 0) return;
-
   const previous = currentBalance.value;
   const after = previous + transaction.value.amount;
 
@@ -133,8 +134,49 @@ const addTransaction = async () => {
     tag: "",
   };
 };
+const deleteTransaction = async (id) => {
+  const tx = transactions.value.find((t) => t.id === id);
+  if (!tx) return;
+
+  const previous = currentBalance.value;
+  const after = previous - tx.amount;
+
+  await supabase.from("safe_transactions").delete().eq("id", id);
+  await supabase.from("safe_balance").insert([{ balance: after }]);
+
+  currentBalance.value = after;
+  await fetchTransactions();
+  if (highlightId === id) {
+    route.query.highlightId = null; // Clear highlight if deleted
+  }
+  transaction.value = {
+    amount: null,
+    note: "",
+    title: "",
+    tag: "",
+  };
+};
+
+const editTransaction = (tx) => {
+    const transactionToEdit = transactions.value.find((t) => t.id === tx);
+    if (!transactionToEdit) return;
+    
+    transaction.value = {
+        amount: transactionToEdit.amount,
+        note: transactionToEdit.note || "",
+        title: transactionToEdit.title || "",
+        tag: transactionToEdit.tag || "",
+    };
+
+    const element = document.getElementById(`safe-${tx}`);
+    if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+    }
+
+};
 
 const formatDate = (d) => new Date(d).toLocaleDateString();
+
 onMounted(async () => {
   await fetchBalance();
   await fetchTransactions();
@@ -163,16 +205,16 @@ form {
 
 input[type="number"],
 input[type="text"] {
+  background: var(--cards);
   padding: 0.5rem;
   font-size: 1rem;
   border-radius: 0.5rem;
-  border: 1px solid #ccc;
 }
 
 button {
   padding: 0.6rem;
   font-weight: bold;
-  background: #4a90e2;
+  background: var(--color-blue);
   color: white;
   border: none;
   border-radius: 0.5rem;
@@ -184,9 +226,10 @@ ul {
 }
 
 li {
-  margin-bottom: 1.25rem;
+  background: var(--cards);
+  margin-bottom: 0.5rem;
+  border-radius: 0.5rem;
   padding: 0.75rem;
-  border-bottom: 1px solid #ddd;
   position: relative;
 }
 
@@ -220,7 +263,32 @@ li {
   padding-left: 0.5rem;
 }
 @keyframes highlightFade {
-  0% { background-color: #fff8c4; }
-  100% { background-color: transparent; }
+  0% {
+    background-color: #fff8c4;
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  position: absolute;
+  right: 2.5rem;
+  top: 50%;
+  transform: translateY(-50%);
 }
 </style>
