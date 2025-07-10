@@ -14,7 +14,7 @@ const message = ref('Track your progress here!');
 
 <style scoped>
 .life-dash {
-    padding: 20px;
+    padding: 0.25rem;
     text-align: center;
 }
 

@@ -268,7 +268,6 @@ async function saveNewWatchListItem() {
 .life-dash {
   max-width: 100%;
   margin: 0 auto;
-  padding: 1rem;
   overflow-x: auto;
 }
 
