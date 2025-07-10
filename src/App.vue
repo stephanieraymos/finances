@@ -96,28 +96,6 @@ onMounted(async () => {
   h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
   }
-  table {
-  width: 100%;
-  border-collapse: collapse;
-  }
-
-  table th,
-  table td {
-    padding: 0.5rem;
-    text-align: left;
-    border-bottom: 1px solid var(--shade-5);
-  }
-
-  table th {
-    background: var(--cards);
-    font-weight: 600;
-  }
-  table tfoot th {
-    border-top: 2px solid #333;
-  }
-  table tr:nth-child(even) {
-    background-color: var(--shade-1);
-  }
 }
 html, body {
   height: 100%;
