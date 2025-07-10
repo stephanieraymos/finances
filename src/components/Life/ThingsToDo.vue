@@ -326,7 +326,8 @@ td {
   background-color: transparent;
   outline: none;
   transition: border-color 0.2s;
-  width: 100%; /* Ensure the input adjusts to the size of the td */
+  min-width: 0;
+  width: auto;
 }
 
 .editable-field:focus {
