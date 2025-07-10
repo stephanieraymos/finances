@@ -282,7 +282,6 @@ async function saveNewWatchListItem() {
 .delete-btn {
   background-color: transparent;
   border: none;
-  color: red;
   cursor: pointer;
   font-size: 1.2rem;
 }
@@ -323,11 +322,11 @@ td {
 }
 .editable-field {
   border: none;
+  padding: .25rem;
   background-color: transparent;
   outline: none;
   transition: border-color 0.2s;
-  width: auto; /* Let the input size adjust to its content */
-  min-width: 0; /* Ensure the input doesn't shrink below its content size */
+  width: 100%; /* Ensure the input adjusts to the size of the td */
 }
 
 .editable-field:focus {
