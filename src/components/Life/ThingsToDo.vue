@@ -28,7 +28,7 @@
                                     @blur="saveItem(item)"
                                     @keyup.enter="saveItem(item)"
                                     type="text"
-                                    class="editable-field"
+                                    class="editable-field title-field"
                                 />
                             </td>
                             <td>
@@ -307,6 +307,9 @@ td input {
 }
 .status-field {
     width: 75px;
+}
+.title-field {
+    width: 100px;
 }
 .modal-overlay {
     position: fixed;
