@@ -340,6 +340,9 @@ td {
 .status-field {
   width: 75px; 
 }
+.title-field {
+    width: 100px;
+}
 .modal-overlay {
   position: fixed;
   top: 0;
