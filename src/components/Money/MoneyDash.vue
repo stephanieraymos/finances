@@ -26,6 +26,11 @@
         v-model="transaction.tag"
         placeholder="Tag (optional)"
       />
+      <input
+        type="file"
+        @change="handleFileUpload"
+        accept="image/*"
+      />
       <button type="submit" style="cursor: pointer">Add Transaction</button>
     </form>
 
@@ -61,7 +66,9 @@
             Linked Sale
           </router-link>
         </div>
-
+        <div v-if="tx.image_url" class="transaction-image">
+          <img :src="tx.image_url" alt="Transaction Image" />
+        </div>
         <small>({{ formatDate(tx.date || tx.created_at) }})</small>
         <button class="edit-btn" @click="editTransaction(tx.id)">✏️</button>
         <button class="delete-btn" @click="deleteTransaction(tx.id)">🗑️</button>
@@ -82,9 +89,39 @@ const transaction = ref({
   note: "",
   title: "",
   tag: "",
+  image_url: "",
 });
 const route = useRoute();
 const highlightId = route.query.highlightId || null;
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) {
+    console.error("No file selected for upload.");
+    return;
+  }
+
+  const { data, error } = await supabase.storage
+    .from("transaction-images")
+    .upload(`images/${Date.now()}_${file.name}`, file);
+
+  if (error) {
+    console.error("Error uploading file:", error.message);
+    return;
+  }
+
+  if (!data || !data.path) {
+    console.error("Upload failed: No path returned.");
+    return;
+  }
+
+  console.log("Upload Data:", data); // Debugging: Check the returned data object
+
+  // Manually construct the public URL
+  const publicUrl = `https://buzybkcumjlkloiaaqtm.supabase.co/storage/v1/object/public/transaction-images/${data.path}`;
+  console.log("Manually Constructed Public URL:", publicUrl);
+
+  transaction.value.image_url = publicUrl;
+};
 
 const fetchBalance = async () => {
   const { data } = await supabase
@@ -117,6 +154,7 @@ const addTransaction = async () => {
       note: transaction.value.note || null,
       title: transaction.value.title || null,
       tag: transaction.value.tag || null,
+      image_url: transaction.value.image_url || null,
       total_before: previous,
       total_after: after,
     },
@@ -132,6 +170,7 @@ const addTransaction = async () => {
     note: "",
     title: "",
     tag: "",
+    image_url: "",
   };
 };
 const deleteTransaction = async (id) => {
@@ -290,5 +329,10 @@ li {
   right: 2.5rem;
   top: 50%;
   transform: translateY(-50%);
+}
+.transaction-image img {
+  max-width: 100px;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 </style>
