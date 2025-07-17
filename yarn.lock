@@ -524,6 +524,25 @@
   resolved "https://registry.yarnpkg.com/@vue/shared/-/shared-3.5.16.tgz#d5ea7671182742192938a4b4cbf86ef12bef7418"
   integrity sha512-c/0fWy3Jw6Z8L9FmTyYfkpM5zklnqqa9+a6dz3DvONRKW2NEbh46BP0FHuLFSWi2TnQEtp91Z6zOWNrU6QiyPg==
 
+ag-charts-types@12.0.2:
+  version "12.0.2"
+  resolved "https://registry.yarnpkg.com/ag-charts-types/-/ag-charts-types-12.0.2.tgz#7796ac5d717f073145710e7318d22f7fafe6687a"
+  integrity sha512-AWM1Y+XW+9VMmV3AbzdVEnreh/I2C9Pmqpc2iLmtId3Xbvmv7O56DqnuDb9EXjK5uPxmyUerTP+utL13UGcztw==
+
+ag-grid-community@34.0.2, ag-grid-community@^34.0.2:
+  version "34.0.2"
+  resolved "https://registry.yarnpkg.com/ag-grid-community/-/ag-grid-community-34.0.2.tgz#7b1239cfda1bca2555611873eb845e0ba2c4ab3f"
+  integrity sha512-hVJp5vrmwHRB10YjfSOVni5YJkO/v+asLjT72S4YnIFSx8lAgyPmByNJgtojk1aJ5h6Up93jTEmGDJeuKiWWLA==
+  dependencies:
+    ag-charts-types "12.0.2"
+
+ag-grid-vue3@^34.0.2:
+  version "34.0.2"
+  resolved "https://registry.yarnpkg.com/ag-grid-vue3/-/ag-grid-vue3-34.0.2.tgz#f230e72168b845ed5542e5c3b17858a9338b2a9e"
+  integrity sha512-FeXVyDCVvN7YOMj5Luek1gAvX1pYxPXzbXgricOHm6XAnYrRjsgI7gVqI3f07BcL5sARC3GUqQ18MJhAr9o/Og==
+  dependencies:
+    ag-grid-community "34.0.2"
+
 braces@^3.0.3:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/braces/-/braces-3.0.3.tgz#490332f40919452272d55a8480adc0c441358789"
