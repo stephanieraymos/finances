@@ -2,15 +2,20 @@
   <div class="life-dash">
     <h1>Things To Do</h1>
     <button @click="showModal = true" class="add-btn">Add New Item</button>
-    <div
-      class="ag-theme-alpine"
-    >
+    <div>
       <ag-grid-vue
         :rowData="rowData"
         :columnDefs="columnDefs"
         :defaultColDef="defaultColDef"
+        class="grid ag-theme-alpine"
         :rowSelection="'single'"
-        style="height: 500px;"
+        :row-height="30"
+        :row-group-panel-show="'always'"
+        :enable-range-selection="true"
+        :suppress-multi-range-selection="true"
+        :show-opened-group="true"
+        :show-loading-overlay="true"
+        :style="{ height: '70vh', width: '100%' }"
         @cellValueChanged="onCellValueChanged"
         @rowSelected="onRowSelected"
       ></ag-grid-vue>
@@ -129,7 +134,7 @@ const onRowSelected = (event) => {
 onMounted(fetchWatchList);
 </script>
 
-<style scoped>
+<style lang="scss">
 .life-dash {
   max-width: 100%;
   margin: 0 auto;
@@ -208,4 +213,34 @@ onMounted(fetchWatchList);
   border-radius: 4px;
   cursor: pointer;
 }
+::v-deep(grid) {
+  * {
+    @include custom-scrollbar;
+    &::-webkit-scrollbar {
+      width: 0.45rem;
+      height: 0.45rem;
+    }
+    &::-webkit-scrollbar-track {
+      background: var(--shade-1);
+      outline: 1px solid var(--shade-7);
+    }
+
+    &::-webkit-scrollbar-thumb {
+      // background: var(--color-accent-highlight-text);
+      // background: var(--shade-3);
+    }
+  }
+}
+.ag-theme-alpine {
+    --ag-background-color: var(--cards);
+    --ag-header-background-color: var(--shade-5);
+    --ag-odd-row-background-color: var(--shade-2);
+    --ag-border-color: var(--shade-4);
+    --ag-header-cell-text-color: var(--text-primary);
+    --ag-cell-text-color: var(--text-secondary);
+    --ag-row-hover-color: var(--shade-3);
+    --ag-selected-row-background-color: var(--shade-5);
+    --ag-font-family: 'Inter', sans-serif;
+    --ag-filter-body-wrapper: var(--cards);
+  }
 </style>

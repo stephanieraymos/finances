@@ -106,8 +106,6 @@ html, body {
 }
 #app {
   background: var(--dark-shade-1);
-  display: flex;
-  flex-direction: column;
   font-family: var(--font);
 }
 </style>

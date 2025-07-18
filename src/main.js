@@ -1,6 +1,7 @@
 import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
+import "@/styles/ag-grid-custom.scss";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 
 // Register the required modules globally

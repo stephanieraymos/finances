@@ -12,17 +12,9 @@ import ThingsToDo from './ThingsToDo.vue';
 const message = ref('Track your progress here!');
 </script>
 
-<style scoped>
+<style>
 .life-dash {
     padding: 0.25rem;
     text-align: center;
-}
-
-h1 {
-    color: #4CAF50;
-}
-
-p {
-    color: #555;
 }
 </style>
