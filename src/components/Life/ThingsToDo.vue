@@ -2,24 +2,13 @@
   <div class="life-dash">
     <h1>Things To Do</h1>
     <button @click="showModal = true" class="add-btn">Add New Item</button>
-    <div>
-      <ag-grid-vue
-        :rowData="rowData"
-        :columnDefs="columnDefs"
-        :defaultColDef="defaultColDef"
-        class="grid ag-theme-alpine"
-        :rowSelection="'single'"
-        :row-height="30"
-        :row-group-panel-show="'always'"
-        :enable-range-selection="true"
-        :suppress-multi-range-selection="true"
-        :show-opened-group="true"
-        :show-loading-overlay="true"
-        :style="{ height: '70vh', width: '100%' }"
-        @cellValueChanged="onCellValueChanged"
-        @rowSelected="onRowSelected"
-      ></ag-grid-vue>
-    </div>
+
+    <CustomDataTable
+      :rows="rowData"
+      :columns="columnDefs"
+      @update:rows="updateRows"
+      @delete-row="handleDelete"
+    />
 
     <template v-if="showModal">
       <div class="modal-overlay" @click.self="showModal = false">
@@ -32,7 +21,12 @@
             </label>
             <label>
               Status:
-              <input v-model="newItem.status" type="text" required />
+              <select v-model="newItem.status" required>
+                <option value="In Progress">In Progress</option>
+                <option value="Watched">Watched</option>
+                <option value="Backlog">Backlog</option>
+                <option value="Not Started">Not Started</option>
+              </select>
             </label>
             <label>
               Platform:
@@ -40,12 +34,7 @@
             </label>
             <label>
               Rating:
-              <input
-                v-model="newItem.rating"
-                type="number"
-                min="0"
-                max="10"
-              />
+              <input v-model="newItem.rating" type="number" min="0" max="10" />
             </label>
             <label>
               Date Watched:
@@ -53,7 +42,7 @@
             </label>
             <div class="modal-actions">
               <button type="submit" class="save-btn">Save</button>
-              <button type="button" @click="showModal = false">Cancel</button>
+              <button type="button" class="cancel-btn" @click="showModal = false">Cancel</button>
             </div>
           </form>
         </div>
@@ -61,33 +50,29 @@
     </template>
   </div>
 </template>
+
 <script setup>
 import { ref, onMounted } from "vue";
-import { AgGridVue } from "ag-grid-vue3";
 import { supabase } from "@/lib/supabase";
+import CustomDataTable from "@/components/Modules/CustomTable.vue"; // adjust path if needed
 
 const rowData = ref([]);
-const columnDefs = ref([
-  { field: "title", headerName: "Title", sortable: true, filter: true, editable: true },
-  { field: "platforms", headerName: "Platform", sortable: true, filter: true, editable: true  },
-  { field: "rating", headerName: "Rating", sortable: true, filter: "agNumberColumnFilter", editable: true  },
-  { field: "date_watched", headerName: "Date Watched", sortable: true, filter: "agDateColumnFilter", editable: true  },
-  { field: "status", headerName: "Status", sortable: true, filter: true, editable: true },
-]);
-const defaultColDef = ref({
-  sortable: true,
-  filter: true,
-  resizable: true,
-});
-
 const showModal = ref(false);
 const newItem = ref({
   title: "",
   platforms: "",
   rating: null,
   date_watched: "",
-  status: "",
+  status: "Not Started",
 });
+
+const columnDefs = [
+  { field: "title", headerName: "Title" },
+  { field: "platforms", headerName: "Platform" },
+  { field: "rating", headerName: "Rating" },
+  { field: "date_watched", headerName: "Date Watched" },
+  { field: "status", headerName: "Status" },
+];
 
 const fetchWatchList = async () => {
   const { data, error } = await supabase.from("watch_list").select("*");
@@ -100,12 +85,28 @@ const fetchWatchList = async () => {
 };
 
 const addItem = async () => {
-  const { error } = await supabase.from("watch_list").insert(newItem.value);
+  // Prepare cleaned item with default fallback
+  const cleanedItem = {
+    ...newItem.value,
+    status: newItem.value.status || "Not Started",
+  };
+
+  // Remove blank strings and nulls (like empty date)
+  Object.keys(cleanedItem).forEach((key) => {
+    if (cleanedItem[key] === "" || cleanedItem[key] === null) {
+      delete cleanedItem[key];
+    }
+  });
+
+  const { error } = await supabase.from("watch_list").insert(cleanedItem);
   if (error) {
     console.error("Error adding new item:", error);
     return;
   }
+
   await fetchWatchList();
+
+  // Reset form
   newItem.value = {
     title: "",
     platforms: "",
@@ -116,19 +117,24 @@ const addItem = async () => {
   showModal.value = false;
 };
 
-const onCellValueChanged = async (event) => {
-  const updatedItem = event.data;
-  const { error } = await supabase
-    .from("watch_list")
-    .update(updatedItem)
-    .eq("id", updatedItem.id);
-  if (error) {
-    console.error("Error updating item:", error);
+const updateRows = async (updatedRows) => {
+  for (const row of updatedRows) {
+    const { error } = await supabase
+      .from("watch_list")
+      .update(row)
+      .eq("id", row.id);
+    if (error) console.error("Error updating row:", error);
   }
+  rowData.value = [...updatedRows];
 };
 
-const onRowSelected = (event) => {
-  console.log("Selected row:", event.data);
+const handleDelete = async (id) => {
+  const { error } = await supabase.from("watch_list").delete().eq("id", id);
+  if (error) {
+    console.error("Error deleting row:", error);
+    return;
+  }
+  await fetchWatchList();
 };
 
 onMounted(fetchWatchList);
@@ -205,13 +211,29 @@ onMounted(fetchWatchList);
   border-radius: 4px;
   margin-bottom: 0.75rem;
 }
+.modal select {
+  padding: 0.5rem;
+  border: 1px solid var(--shade-5);
+  background: var(--cards);
+  color: var(--text-primary);
+  width: 100%;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+}
 .save-btn {
   background-color: var(--color-blue);
-  color: white;
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
+}
+.cancel-btn {
+  background-color: var(--shade-2);
+  border: 1px solid var(--shade-4);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 0.5rem;
 }
 ::v-deep(grid) {
   * {
@@ -231,16 +253,4 @@ onMounted(fetchWatchList);
     }
   }
 }
-.ag-theme-alpine {
-    --ag-background-color: var(--cards);
-    --ag-header-background-color: var(--shade-5);
-    --ag-odd-row-background-color: var(--shade-2);
-    --ag-border-color: var(--shade-4);
-    --ag-header-cell-text-color: var(--text-primary);
-    --ag-cell-text-color: var(--text-secondary);
-    --ag-row-hover-color: var(--shade-3);
-    --ag-selected-row-background-color: var(--shade-5);
-    --ag-font-family: 'Inter', sans-serif;
-    --ag-filter-body-wrapper: var(--cards);
-  }
 </style>
