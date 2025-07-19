@@ -8,6 +8,7 @@
       :columns="columnDefs"
       @update:rows="updateRows"
       @delete-row="handleDelete"
+      @row-click="openDetails"
     />
 
     <template v-if="showModal">
@@ -42,7 +43,62 @@
             </label>
             <div class="modal-actions">
               <button type="submit" class="save-btn">Save</button>
-              <button type="button" class="cancel-btn" @click="showModal = false">Cancel</button>
+              <button
+                type="button"
+                class="cancel-btn"
+                @click="showModal = false"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </template>
+    <template v-if="selectedItem">
+      <div class="modal-overlay" @click.self="closeDetails">
+        <div class="modal detail-modal">
+          <h2>Edit Item</h2>
+          <form @submit.prevent="saveEditedItem">
+            <label>
+              Title:
+              <input v-model="editableItem.title" type="text" required />
+            </label>
+            <label>
+              Status:
+              <select v-model="editableItem.status">
+                <option value="In Progress">In Progress</option>
+                <option value="Watched">Watched</option>
+                <option value="Backlog">Backlog</option>
+                <option value="Not Started">Not Started</option>
+              </select>
+            </label>
+            <label>
+              Platform:
+              <input v-model="editableItem.platforms" type="text" />
+            </label>
+            <label>
+              Rating:
+              <input
+                v-model="editableItem.rating"
+                type="number"
+                min="0"
+                max="10"
+              />
+            </label>
+            <label>
+              Date Watched:
+              <input v-model="editableItem.date_watched" type="date" />
+            </label>
+            <label>
+              Note:
+              <textarea v-model="editableItem.note" />
+            </label>
+            <div class="modal-actions">
+              <button type="submit" class="save-btn">Save</button>
+              <button type="button" class="cancel-btn" @click="closeDetails">
+                Cancel
+              </button>
             </div>
           </form>
         </div>
@@ -65,6 +121,33 @@ const newItem = ref({
   date_watched: "",
   status: "Not Started",
 });
+const selectedItem = ref(null);
+const editableItem = ref(null);
+
+const openDetails = (row) => {
+  selectedItem.value = row;
+  editableItem.value = { ...row }; // shallow copy for editing
+};
+
+const closeDetails = () => {
+  selectedItem.value = null;
+  editableItem.value = null;
+};
+
+const saveEditedItem = async () => {
+  const { error } = await supabase
+    .from("watch_list")
+    .update(editableItem.value)
+    .eq("id", editableItem.value.id);
+
+  if (error) {
+    console.error("Error updating item:", error);
+    return;
+  }
+
+  await fetchWatchList();
+  closeDetails();
+};
 
 const columnDefs = [
   { field: "title", headerName: "Title" },
@@ -220,6 +303,17 @@ onMounted(fetchWatchList);
   border-radius: 4px;
   margin-bottom: 0.75rem;
 }
+.modal textarea {
+  padding: 0.5rem;
+  border: 1px solid var(--shade-5);
+  background: var(--cards);
+  color: var(--text-primary);
+  width: 100%;
+  border-radius: 4px;
+  resize: vertical;
+  min-height: 80px;
+  margin-bottom: 0.75rem;
+}
 .save-btn {
   background-color: var(--color-blue);
   border: none;
@@ -235,22 +329,26 @@ onMounted(fetchWatchList);
   cursor: pointer;
   margin-left: 0.5rem;
 }
-::v-deep(grid) {
-  * {
-    @include custom-scrollbar;
-    &::-webkit-scrollbar {
-      width: 0.45rem;
-      height: 0.45rem;
-    }
-    &::-webkit-scrollbar-track {
-      background: var(--shade-1);
-      outline: 1px solid var(--shade-7);
-    }
+.detail-modal {
+  background-color: var(--cards);
+  padding: 2rem;
+  border-radius: 10px;
+  width: 500px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
 
-    &::-webkit-scrollbar-thumb {
-      // background: var(--color-accent-highlight-text);
-      // background: var(--shade-3);
-    }
-  }
+.detail-modal h2 {
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+.detail-row {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.detail-row strong {
+  display: inline-block;
+  width: 130px;
 }
 </style>
