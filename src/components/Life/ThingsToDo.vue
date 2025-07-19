@@ -23,7 +23,7 @@
             <label>
               Status:
               <select v-model="newItem.status" required>
-                <option value="In Progress">In Progress</option>
+                <option value="IP">IP</option>
                 <option value="Watched">Watched</option>
                 <option value="Backlog">Backlog</option>
                 <option value="Not Started">Not Started</option>
