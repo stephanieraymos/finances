@@ -176,12 +176,6 @@ function onDrop(newStatus) {
 </script>
 
 <style scoped>
-.custom-table {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: auto;
-  padding: 1rem;
-}
 .search-input {
   margin-bottom: 0.5rem;
   padding: 0.4rem;
@@ -191,12 +185,20 @@ function onDrop(newStatus) {
   background: var(--cards);
   color: var(--text-primary);
 }
+.custom-table {
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 1rem;
+}
+
 table {
-  width: 100%;
+  width: auto;
   table-layout: auto;
   border-collapse: collapse;
   background: var(--cards);
 }
+
 th {
   background: var(--color-blue);
   font-weight: bold;
