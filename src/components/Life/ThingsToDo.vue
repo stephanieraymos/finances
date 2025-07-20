@@ -1,7 +1,7 @@
 <template>
   <div class="life-dash">
-    <h1>Things To Do</h1>
     <button @click="showModal = true" class="add-btn">Add New Item</button>
+    <button @click="openNotStartedModal" class="not-started-btn">Not Started</button>
 
     <CustomDataTable
       :rows="rowData"
@@ -104,16 +104,27 @@
         </div>
       </div>
     </template>
+    <CustomModal
+      v-if="showNotStartedModal"
+      :header="'Not Started'"
+      :body="notStartedMoviesBody"
+      :buttons="notStartedModalButtons"
+      :isVisible="showNotStartedModal"
+      @close="closeNotStartedModal"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { supabase } from "@/lib/supabase";
-import CustomDataTable from "@/components/Modules/CustomTable.vue"; // adjust path if needed
+import CustomModal from "@/components/Modules/CustomModal.vue";
+import CustomDataTable from "@/components/Modules/CustomTable.vue";
 
 const rowData = ref([]);
 const showModal = ref(false);
+const showNotStartedModal = ref(false);
+
 const newItem = ref({
   title: "",
   platforms: "",
@@ -164,9 +175,40 @@ const fetchWatchList = async () => {
     return;
   }
   rowData.value = data || [];
-  console.log("Fetched watch list:", rowData.value);
 };
 
+// Computed property to filter movies with status = "Not Started"
+const notStartedMovies = computed(() =>
+  rowData.value.filter((movie) => movie.status === "Not Started")
+);
+
+// Modal body content for "Not Started" movies
+const notStartedMoviesBody = computed(() =>
+  notStartedMovies.value
+    .map((movie) => `<li>${movie.title} (${movie.platforms || "Unknown Platform"})</li>`)
+    .join("")
+);
+
+// Modal buttons
+const notStartedModalButtons = [
+  {
+    label: "Close",
+    class: "close-btn",
+    onClick: () => closeNotStartedModal(),
+  },
+];
+
+// Open "Not Started" modal
+const openNotStartedModal = () => {
+  showNotStartedModal.value = true;
+};
+
+// Close "Not Started" modal
+const closeNotStartedModal = () => {
+  showNotStartedModal.value = false;
+};
+
+// Add a new item
 const addItem = async () => {
   // Prepare cleaned item with default fallback
   const cleanedItem = {
@@ -245,9 +287,18 @@ onMounted(fetchWatchList);
 }
 .add-btn {
   background-color: var(--color-blue);
-  color: white;
   border: none;
   padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.not-started-btn {
+  background-color: var(--color-yellow);
+  color: black;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin-left: 0.5rem;
   border-radius: 4px;
   cursor: pointer;
   font-size: 1rem;

@@ -36,30 +36,30 @@
               @click="handleCellClick($event, row, col)"
               >
               <template
-                v-if="
-                  editingCell.id === row.id && editingCell.field === col.field
-                "
+            v-if="
+              editingCell.id === row.id && editingCell.field === col.field
+            "
               >
-                <input
-                  v-if="col.field !== 'status'"
-                  v-model="row[col.field]"
-                  @blur="saveEdit(row, col.field)"
-                  @keyup.enter="saveEdit(row, col.field)"
-                  autofocus
-                  class="editable-input"
-                />
-                <select
-                  v-else
-                  v-model="row.status"
-                  @blur="saveEdit(row, 'status')"
-                  @change="saveEdit(row, 'status')"
-                  class="editable-input"
-                >
-                  <option value="IP">IP</option>
-                  <option value="Watched">Watched</option>
-                  <option value="Backlog">Backlog</option>
-                  <option value="Not Started">Not Started</option>
-                </select>
+            <input
+              v-if="col.field !== 'status'"
+              v-model="row[col.field]"
+              @blur="saveEdit(row, col.field)"
+              @keyup.enter="saveEdit(row, col.field)"
+              autofocus
+              class="editable-input"
+            />
+            <select
+              v-else
+              v-model="row.status"
+              @blur="saveEdit(row, 'status')"
+              @change="saveEdit(row, 'status')"
+              class="editable-input"
+            >
+              <option value="Not Started">Not Started</option>
+              <option value="IP">IP</option>
+              <option value="Watched">Watched</option>
+              <option value="Backlog">Backlog</option>
+            </select>
               </template>
               <template v-else>{{ row[col.field] }}</template>
             </td>
@@ -133,12 +133,21 @@ const sortedRows = computed(() => {
 });
 
 const groupedRows = computed(() => {
-  return sortedRows.value.reduce((groups, row) => {
-    const key = row.status || "Uncategorized";
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(row);
-    return groups;
-  }, {});
+    const groups = sortedRows.value.reduce((groups, row) => {
+        const key = row.status || "Uncategorized";
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(row);
+        return groups;
+    }, {});
+
+    const sortedGroups = {};
+    Object.keys(groups)
+        .sort((a, b) => a.localeCompare(b))
+        .forEach((key) => {
+            sortedGroups[key] = groups[key];
+        });
+
+    return sortedGroups;
 });
 
 function toggleSort(field) {
