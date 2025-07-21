@@ -3,6 +3,7 @@
     <router-link to="financials" :class="{ active: isActive('financials') }">Financials</router-link>
     <router-link to="money" :class="{ active: isActive('money') }">Money</router-link>
     <router-link to="life" :class="{ active: isActive('life') }">Life</router-link>
+    <router-link to="relationship" :class="{ active: isActive('relationship') }">Relationship</router-link>
   </nav>
   <router-view />
 </template>

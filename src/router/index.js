@@ -4,6 +4,7 @@ import Login from "@/components/Login.vue";
 import MoneyDash from "@/components/Money/MoneyDash.vue";
 import Sold from "@/components/Money/Sold.vue";
 import SalesDashboard from "@/components/Money/SalesDashboard.vue";
+import RelationshipDash from "@/components/Relationship/RelationshipDash.vue";
 
 const routes = [
   {
@@ -29,6 +30,11 @@ const routes = [
         path: "life",
         name: "LifeDash",
         component: () => import("@/components/Life/LifeDash.vue"),
+      },
+      {
+        path: "relationship",
+        name: "RelationshipDash",
+        component: () => import("@/components/Relationship/RelationshipDash.vue"),
       },
     ],
   },
