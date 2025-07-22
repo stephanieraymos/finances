@@ -55,10 +55,9 @@
               @change="saveEdit(row, 'status')"
               class="editable-input"
             >
-              <option value="Not Started">Not Started</option>
-              <option value="IP">IP</option>
-              <option value="Watched">Watched</option>
-              <option value="Backlog">Backlog</option>
+                <option v-for="status in statuses" :key="status.id" :value="status.name">
+                    {{ status.name }}
+                </option>
             </select>
               </template>
               <template v-else>{{ row[col.field] }}</template>
@@ -74,7 +73,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
+import { supabase } from "@/lib/supabase";
 
 const props = defineProps({
   rows: Array,
@@ -119,6 +119,23 @@ function handleCellClick(event, row, col) {
     }, 200);
   }
 }
+
+const statuses = ref([]);
+const fetchStatuses = async () => {
+  const { data, error } = await supabase
+    .from("statuses")
+    .select("*")
+    .eq("table", "movies"); // get all statuses where table is "movies"
+
+  if (error) {
+    console.error("Error fetching statuses:", error);
+    return;
+  }
+
+  statuses.value = data || [];
+};
+
+onMounted(fetchStatuses);
 const sortedRows = computed(() => {
   if (!sort.value.field) return filteredRows.value;
   return [...filteredRows.value].sort((a, b) => {
@@ -131,6 +148,8 @@ const sortedRows = computed(() => {
     return 0;
   });
 });
+
+
 
 const groupedRows = computed(() => {
     const groups = sortedRows.value.reduce((groups, row) => {
