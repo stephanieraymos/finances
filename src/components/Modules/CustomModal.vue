@@ -3,13 +3,13 @@
         <div class="modal-content" @click.stop>
             <header class="modal-header">
                 <h3>{{ header }}</h3>
-                <button class="close-button" @click="closeModal">×</button>
+                <button class="cancel-button" @click="closeModal">×</button>
             </header>
             <div class="modal-body" v-html="body">
             </div>
             <footer class="modal-footer">
                 <button
-                    v-for="(button, index) in buttons"
+                    v-for="(button, index) in computedButtons"
                     :key="index"
                     :class="button.class"
                     @click="button.onClick"
@@ -22,9 +22,9 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from "vue";
+import { defineProps, defineEmits, computed } from "vue";
 
-defineProps({
+const props = defineProps({
     header: {
         type: String,
         required: true,
@@ -45,9 +45,13 @@ defineProps({
         type: Boolean,
         default: true,
     },
+    submit: {
+        type: Function,
+        default: () => {},
+    },
 });
 
-const emit = defineEmits(["close"]);
+const emit = defineEmits(["close", "submit"]);
 
 const closeModal = () => {
     emit("close");
@@ -58,15 +62,24 @@ const closeOnOverlayClick = () => {
         closeModal();
     }
 };
+
+const computedButtons = computed(() => {
+    return props.buttons.length
+        ? props.buttons
+        : [
+              { label: "Cancel", class: "cancel-button", onClick: closeModal },
+              { label: "OK", class: "ok-button", onClick: () => emit("submit") },
+          ];
+});
 </script>
 
-<style scoped>
+<style>
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: 40%;
     background: rgba(0, 0, 0, 0.7);
     display: flex;
     z-index: 1000;
@@ -74,6 +87,7 @@ const closeOnOverlayClick = () => {
 
 .modal-content {
     background: var(--cards);
+    margin: 0 auto;
     border-radius: 8px;
     width: 90%;
     max-width: 500px;
@@ -87,16 +101,26 @@ const closeOnOverlayClick = () => {
     padding-bottom: 10px;
 }
 
-.close-button {
-    background: none;
+.cancel-button {
+    background: var(--cards);
     border: none;
-    font-size: 1.5rem;
+    cursor: pointer;
+}
+.ok-button {
+    background: var(--color-blue);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
     cursor: pointer;
 }
 
 .modal-body {
     padding: 10px 0;
     text-align: left; 
+    display: flex;
+    flex-direction: column;
+
 }
 
 .modal-footer {
@@ -110,5 +134,15 @@ const closeOnOverlayClick = () => {
     border: none;
     border-radius: 4px;
     cursor: pointer;
+}
+form {
+    display: flex;
+    flex-direction: column;
+}
+input, textarea{
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background: var(--cards);
+    border: 1px solid var(--shade-5);
 }
 </style>
